@@ -1,3 +1,3 @@
 name: kambi
-setup_command: uv sync
-test_command: uv run pytest -q --cov=. --cov-report=term-missing --cov-fail-under=80
+setup_command: uv sync --directory api && pnpm --dir web install --frozen-lockfile
+test_command: uv run --directory api pytest -q --cov=app --cov-report=term-missing --cov-fail-under=80 && pnpm --dir web exec vitest run --coverage
