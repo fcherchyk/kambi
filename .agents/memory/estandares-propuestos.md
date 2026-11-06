@@ -1,0 +1,10 @@
+- Web local con docker compose: servicios `db`/`api`/`web`, puertos publicados solo en 127.0.0.1, el SPA habla con la API por un proxy `/api` del mismo origen, y los secretos van en `.env` (git-ignorado) con un `.env.example` versionado. Así no hace falta CORS y nada queda expuesto a la red.
+- Login web: OAuth del lado del servidor (BFF) con cookie `HttpOnly`, header CSRF en cada mutación y scopes mínimos que se piden de forma incremental. Así el navegador nunca ve tokens (ADR 0006 de mapa-mental, pendiente de pasar a `decisiones.md`).
+- Tests con base de datos: `TEST_DATABASE_URL` → testcontainers → `pgserver`. Se salta el test solo si ninguna opción está disponible. Los tests corren con o sin Docker y nunca contra la base de desarrollo ni SQLite; extiende la regla de `codigo.md`, que solo nombra testcontainers.
+- UI: cada atajo de teclado tiene también un botón visible, y un panel "?" lista los atajos. Así las acciones se descubren y funcionan con teclado o con mouse.
+- Orden manual de elementos con `sort_key` fraccional (texto). Mover un elemento actualiza una sola fila, sin renumerar los demás.
+- Licencia MIT con `LICENSE` en la raíz del repo, porque los repos son públicos y se comparten.
+- Cada app es dueña de su base de datos, y la identidad entre apps es el `sub` de Google. No hay acoplamiento entre stacks, y `sub` es una clave estable que ambas apps ya guardan.
+- Registro de puertos del workspace, una línea por proyecto (kambi: web `5174`, API `8001`). Así las apps corren a la vez sin choques y el redirect de OAuth queda predecible.
+
+**Ambiguo en la arquitectura:** "Decisiones tomadas" no incluye la resolución de las decisiones abiertas 1–13 (login, título de tarjeta, vista de archivo, borrado de columnas y tipos, drag and drop, etc.). Las describen las secciones Componentes y Modelo de datos con las opciones recomendadas, pero no las registré como ADR. Las propuestas de estándar de arriba que dependen de esas decisiones (login BFF, `sub` de Google, puertos) supongo que se aprobaron con las recomendaciones.
