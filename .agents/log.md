@@ -1,2 +1,3 @@
 # Registro de corridas
 
+- 2026-11-06 · corrida 678ff13c · done · rama agent/678ff13c · A Trello-style kanban board web app, built as an MVP and designed to be as close as possible to…
