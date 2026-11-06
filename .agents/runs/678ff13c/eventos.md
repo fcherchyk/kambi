@@ -31,3 +31,8 @@
 - 20:44:27 · paso record
 - 20:45:35 · record hecho por claude/claude-sonnet-5-5
 - 20:45:35 · record: ⚠ claude no pudo ejecutar 3 comandos: `ls -a .agents .agents/memory .agents/memory/adr 2>&1; cat .agents/project.yaml; ls ../*/ 2>/dev/null | head -30; ls ../…`, `cd /Users/negro/hworkspace && cat memory/adr/0000-plantilla.md; ls projects/mapa-mental/.agents/memory/adr | head -3`, `cd /Users/negro/hworkspace/projects/kambi/.agents/memory/adr && w(){ f="$1"; id="$2"; t="$3"; ctx="$4"; dec="$5"; con="…`
+- 20:45:35 · gate enviado: Estándares para todos los proyectos
+- 20:47:42 · 👤 aprobaste
+- 20:47:42 · estándares agregados a memory/standards/decisiones.md
+- 20:47:42 · paso spec
+- 20:48:28 · spec hecho por claude-readonly/claude-opus-5-5
