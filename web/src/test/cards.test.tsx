@@ -1,3 +1,4 @@
+import { fireEvent } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import {
   cardElement,
@@ -46,6 +47,21 @@ describe("cards", () => {
     expect(
       todo.queryByRole("textbox", { name: "New card in To Do" }),
     ).not.toBeInTheDocument();
+    expect(fake.mutations()).toEqual([]);
+  });
+
+  it("AC11: a card title longer than 200 characters shows an error and sends nothing", async () => {
+    const { user, fake } = await renderBoard();
+    const todo = within(screen.getByRole("region", { name: "To Do" }));
+    await user.click(todo.getByRole("button", { name: "+ Add card" }));
+    await user.type(
+      todo.getByRole("textbox", { name: "New card in To Do" }),
+      `${"c".repeat(201)}{Enter}`,
+    );
+    expect(
+      await screen.findByText("Card title must be 1 to 200 characters."),
+    ).toBeInTheDocument();
+    expect(cardTitles("To Do")).toEqual([]);
     expect(fake.mutations()).toEqual([]);
   });
 
@@ -138,15 +154,34 @@ describe("cards", () => {
     await waitFor(() => expect(currentPath()).toBe(`/b/${board.id}`));
   });
 
-  it("AC12: an empty title in the dialog shows an error and sends nothing", async () => {
+  it("AC12: an empty or invalid title, or description > 10000 chars in the dialog shows an error and sends nothing", async () => {
     const { user, fake } = await renderBoard((fake, boardId) => {
       fake.addCard(fake.column(boardId, "To Do").id, "Title");
     });
     await user.dblClick(cardElement("Title"));
-    await user.clear(within(dialog()).getByRole("textbox", { name: "Title" }));
-    await user.click(within(dialog()).getByRole("button", { name: "Save" }));
-    expect(within(dialog()).getByRole("alert")).toHaveTextContent(
+    const box = within(dialog());
+    await user.clear(box.getByRole("textbox", { name: "Title" }));
+    await user.click(box.getByRole("button", { name: "Save" }));
+    expect(box.getByRole("alert")).toHaveTextContent(
       "Card title must be 1 to 200 characters.",
+    );
+    expect(fake.mutations()).toEqual([]);
+
+    await user.type(box.getByRole("textbox", { name: "Title" }), "x".repeat(201));
+    await user.click(box.getByRole("button", { name: "Save" }));
+    expect(box.getByRole("alert")).toHaveTextContent(
+      "Card title must be 1 to 200 characters.",
+    );
+    expect(fake.mutations()).toEqual([]);
+
+    await user.clear(box.getByRole("textbox", { name: "Title" }));
+    await user.type(box.getByRole("textbox", { name: "Title" }), "Valid Title");
+    fireEvent.change(box.getByRole("textbox", { name: "Description" }), {
+      target: { value: "d".repeat(10001) },
+    });
+    await user.click(box.getByRole("button", { name: "Save" }));
+    expect(box.getByRole("alert")).toHaveTextContent(
+      "Description must be at most 10000 characters.",
     );
     expect(fake.mutations()).toEqual([]);
   });
@@ -257,6 +292,28 @@ describe("cards", () => {
     expect(fake.mutations()).toHaveLength(3);
   });
 
+  it("AC14: Shift+Arrow at boundaries (first/last column, bottom card) sends no requests", async () => {
+    const { user, fake } = await renderBoard((fake, boardId) => {
+      fake.addCard(fake.column(boardId, "To Do").id, "Top");
+      fake.addCard(fake.column(boardId, "To Do").id, "Bottom");
+      fake.addCard(fake.column(boardId, "Done").id, "LastCol");
+    });
+    // Shift+Left from first column
+    await user.click(cardElement("Top"));
+    await user.keyboard("{Shift>}{ArrowLeft}{/Shift}");
+    expect(fake.mutations()).toHaveLength(0);
+
+    // Shift+Down from bottom of column
+    await user.click(cardElement("Bottom"));
+    await user.keyboard("{Shift>}{ArrowDown}{/Shift}");
+    expect(fake.mutations()).toHaveLength(0);
+
+    // Shift+Right from last column
+    await user.click(cardElement("LastCol"));
+    await user.keyboard("{Shift>}{ArrowRight}{/Shift}");
+    expect(fake.mutations()).toHaveLength(0);
+  });
+
   it.each(["Delete key", "delete button"])(
     "AC15: the %s asks for confirmation before deleting",
     async (how) => {
@@ -310,5 +367,20 @@ describe("cards", () => {
     await waitFor(() => expect(fake.cards).toEqual([]));
     expect(currentPath()).toBe(`/b/${board.id}`);
     expect(screen.queryByText("Card not found.")).not.toBeInTheDocument();
+  });
+
+  it("AC15: pressing Escape on the delete confirmation cancels and keeps the card", async () => {
+    const { user, fake } = await renderBoard((fake, boardId) => {
+      fake.addCard(fake.column(boardId, "To Do").id, "A");
+    });
+    await user.click(cardElement("A"));
+    await user.keyboard("{Delete}");
+    expect(
+      within(dialog()).getByText("Delete “A”? This cannot be undone."),
+    ).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(cardTitles("To Do")).toEqual(["A"]);
+    expect(fake.mutations()).toEqual([]);
   });
 });

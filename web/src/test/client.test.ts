@@ -20,7 +20,8 @@ describe("API client", () => {
     await api.updateCardType(task, { color: "blue" });
     const card = await api.createCard(column.id, "Card");
     const moved = await api.moveCard(card, doing.id, null);
-    await api.updateCard(moved, { description: "text" });
+    const updated = await api.updateCard(moved, { description: "text" });
+    await api.deleteCard(updated);
     await api.deleteCardType(bug);
     await api.deleteBoard(renamed);
     await api.logout();
@@ -38,6 +39,7 @@ describe("API client", () => {
       "POST /api/columns/:id/cards",
       "POST /api/cards/:id/move",
       "PATCH /api/cards/:id",
+      "DELETE /api/cards/:id",
       "DELETE /api/card-types/:id",
       "DELETE /api/boards/:id",
       "POST /api/auth/logout",
@@ -63,14 +65,14 @@ describe("API client", () => {
     expect(fake.mutations().at(-1)?.query.get("version")).toBe("1");
   });
 
-  it("raises ApiError with the server's message and status", async () => {
+  it("AC2: raises ApiError with the server's message and status", async () => {
     setup();
     await expect(api.getBoard("missing")).rejects.toEqual(
       new ApiError(404, "Board not found"),
     );
   });
 
-  it("reports validation errors and non-JSON failures readably", async () => {
+  it("AC2: reports validation errors and non-JSON failures readably", async () => {
     vi.stubGlobal(
       "fetch",
       vi

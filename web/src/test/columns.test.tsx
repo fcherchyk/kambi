@@ -45,6 +45,21 @@ describe("columns", () => {
     expect(columnNames().at(-1)).toBe("Later");
   });
 
+  it("AC5: a column added with exactly 100 characters succeeds", async () => {
+    const { user, fake, board } = await renderBoard();
+    const name = "C".repeat(100);
+    await user.click(screen.getByRole("button", { name: "+ Add column" }));
+    await user.type(
+      screen.getByRole("textbox", { name: "New column name" }),
+      `${name}{Enter}`,
+    );
+    await waitFor(() =>
+      expect(fake.activeColumns(board.id).at(-1)?.name).toBe(name),
+    );
+    expect(lastMutation(fake)?.body).toEqual({ name });
+    expect(columnNames().at(-1)).toBe(name);
+  });
+
   it("AC5: renaming a column shows the new name", async () => {
     const { user, fake, board } = await renderBoard();
     await user.click(
@@ -230,26 +245,88 @@ describe("columns", () => {
     expect(fake.mutations()).toEqual([]);
   });
 
-  it("shows Board not found for an unknown board", async () => {
+  it("AC6: the delete dialog for a column with 1 card shows singular card text and excludes the column itself from targets", async () => {
+    const { user, fake } = await renderBoard((fake, boardId) => {
+      const todo = fake.column(boardId, "To Do");
+      fake.addCard(todo.id, "lone card");
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Delete column To Do" }),
+    );
+    const box = dialog();
+    expect(within(box).getByText("This column has 1 card.")).toBeInTheDocument();
+    expect(
+      within(box).getByRole("button", { name: "Move 1 card to…" }),
+    ).toBeInTheDocument();
+    expect(
+      within(box).getByRole("button", {
+        name: "Delete the column and its 1 card",
+      }),
+    ).toBeInTheDocument();
+    const targetOptions = within(
+      within(box).getByRole("combobox", { name: "Target column" }),
+    )
+      .getAllByRole("option")
+      .map((o) => o.textContent);
+    expect(targetOptions).toEqual(["In Progress", "Done"]);
+    expect(targetOptions).not.toContain("To Do");
+    await user.click(within(box).getByRole("button", { name: "Cancel" }));
+    expect(fake.mutations()).toEqual([]);
+  });
+
+  it("AC7: the last active column cannot be archived or deleted even when archived columns exist", async () => {
+    const { fake } = await renderBoard((fake, boardId) => {
+      fake.columns = fake.columns.filter(
+        (c) => c.board_id !== boardId || c.name === "To Do",
+      );
+      const archived = fake.addColumn(boardId, "Old");
+      archived.archived_at = "2026-11-06T00:00:00Z";
+    });
+    expect(
+      screen.getByRole("button", { name: "Archive column To Do" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Delete column To Do" }),
+    ).toBeDisabled();
+    expect(fake.mutations()).toEqual([]);
+  });
+
+  it("AC5: shows Board not found for an unknown board", async () => {
     const { renderApp } = await import("./render");
     renderApp("/b/missing");
     expect(await screen.findByText("Board not found.")).toBeInTheDocument();
   });
 
-  it("rejects an invalid column name without sending anything", async () => {
+  it("AC5: rejects an invalid column name (empty or >100 chars) without sending anything", async () => {
     const { user, fake } = await renderBoard();
     await user.click(
       screen.getByRole("button", { name: "Rename column Done" }),
     );
-    await user.clear(
-      screen.getByRole("textbox", { name: "New name for column Done" }),
-    );
+    const input = screen.getByRole("textbox", {
+      name: "New name for column Done",
+    });
+    await user.clear(input);
     await user.keyboard("{Enter}");
     expect(
       await screen.findByText("Column name must be 1 to 100 characters."),
     ).toBeInTheDocument();
+    await user.type(input, `${"x".repeat(101)}{Enter}`);
+    expect(
+      await screen.findAllByText("Column name must be 1 to 100 characters."),
+    ).toHaveLength(2);
+    await user.keyboard("{Escape}");
+
     await user.click(screen.getByRole("button", { name: "+ Add column" }));
     await user.keyboard("{Enter}");
+    await user.type(
+      screen.getByRole("textbox", { name: "New column name" }),
+      `${"x".repeat(101)}{Enter}`,
+    );
+    expect(
+      (await screen.findAllByText("Column name must be 1 to 100 characters.")).length,
+    ).toBeGreaterThanOrEqual(3);
+    await user.keyboard("{Escape}");
+
     await user.click(
       screen.getByRole("button", { name: "Add column after To Do" }),
     );

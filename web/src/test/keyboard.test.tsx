@@ -190,7 +190,7 @@ describe("keyboard", () => {
     expect(currentPath()).toBe(`/b/${board.id}/c/${fake.card("A1").id}`);
   });
 
-  it("maps keys to shortcuts and ignores modified keys", () => {
+  it("AC16: maps keys to shortcuts and ignores modified keys", () => {
     const key = (init: KeyboardEventInit) => new KeyboardEvent("keydown", init);
     expect(matchShortcut(key({ key: "ArrowLeft", shiftKey: true }))).toBe(
       "move-left",
@@ -201,7 +201,7 @@ describe("keyboard", () => {
     expect(matchShortcut(key({ key: "n", ctrlKey: true }))).toBeNull();
   });
 
-  it("? opens the help panel on the boards list too", async () => {
+  it("AC16: ? opens the help panel on the boards list too", async () => {
     renderApp("/");
     await screen.findByText("No boards yet. Create one above.");
     fireEvent.keyDown(window, { key: "?" });

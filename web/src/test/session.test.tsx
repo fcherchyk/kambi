@@ -40,7 +40,7 @@ describe("session", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows an error notice when the server cannot be reached", async () => {
+  it("AC3: shows an error notice when the server cannot be reached", async () => {
     const fake = new FakeApi();
     fake.failNext("GET", /\/api\/me/, 500);
     renderApp("/", fake);

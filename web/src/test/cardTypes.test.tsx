@@ -88,6 +88,7 @@ describe("card types", () => {
   it.each([
     ["a duplicate name", "task", "A type with that name already exists."],
     ["an empty name", "   ", "Type name must be 1 to 50 characters."],
+    ["a too long name", "x".repeat(51), "Type name must be 1 to 50 characters."],
   ])(
     "AC9: %s shows a client-side error and sends nothing",
     async (_, name, message) => {
@@ -102,6 +103,31 @@ describe("card types", () => {
       expect(fake.mutations()).toEqual([]);
     },
   );
+
+  it("AC9: renaming a type to an invalid or duplicate name shows a client-side error and sends nothing", async () => {
+    const { user, fake } = await renderBoard((fake, boardId) => {
+      fake.addType(boardId, "Bug", "red");
+    });
+    const panel = await openTypes(user);
+    await user.click(panel.getByRole("button", { name: "Rename type Bug" }));
+    const input = panel.getByRole("textbox", { name: "New name for type Bug" });
+    await user.clear(input);
+    await user.type(input, "task{Enter}");
+    expect(panel.getByRole("alert")).toHaveTextContent(
+      "A type with that name already exists.",
+    );
+    await user.clear(input);
+    await user.type(input, "   {Enter}");
+    expect(panel.getByRole("alert")).toHaveTextContent(
+      "Type name must be 1 to 50 characters.",
+    );
+    await user.clear(input);
+    await user.type(input, `${"x".repeat(51)}{Enter}`);
+    expect(panel.getByRole("alert")).toHaveTextContent(
+      "Type name must be 1 to 50 characters.",
+    );
+    expect(fake.mutations()).toEqual([]);
+  });
 
   it("AC9: the API's 422 is shown as an error notice", async () => {
     const { user, fake } = await renderBoard();
@@ -190,5 +216,19 @@ describe("card types", () => {
     expect(panel.getByText("Bug")).toBeInTheDocument();
     await user.click(replace.getByRole("button", { name: "Cancel" }));
     expect(fake.types.map((t) => t.name)).toEqual(["Task", "Bug"]);
+  });
+
+  it("AC10: canceling the replacement dialog leaves the type intact and sends nothing", async () => {
+    const { user, fake, board } = await renderBoard((fake, boardId) => {
+      const bug = fake.addType(boardId, "Bug", "red");
+      const todo = fake.column(boardId, "To Do");
+      fake.addCard(todo.id, "one", bug.id);
+    });
+    const panel = await openTypes(user);
+    await user.click(panel.getByRole("button", { name: "Delete type Bug" }));
+    const replace = within(dialog());
+    await user.click(replace.getByRole("button", { name: "Cancel" }));
+    expect(fake.typesOf(board.id).map((t) => t.name)).toEqual(["Task", "Bug"]);
+    expect(fake.mutations()).toEqual([]);
   });
 });

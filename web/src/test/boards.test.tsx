@@ -44,6 +44,16 @@ describe("boards list", () => {
     });
   });
 
+  it("AC4: creating a board with exactly 100 characters succeeds", async () => {
+    const { user, fake } = renderApp("/");
+    await screen.findByText("No boards yet. Create one above.");
+    const name = "B".repeat(100);
+    await user.type(screen.getByRole("textbox", { name: "Board name" }), name);
+    await user.click(screen.getByRole("button", { name: "Create board" }));
+    expect(await screen.findByRole("link", { name })).toBeInTheDocument();
+    expect(fake.mutations()[0]?.body).toEqual({ name });
+  });
+
   it.each([
     ["empty", "   "],
     ["too long", "x".repeat(101)],
@@ -71,14 +81,31 @@ describe("boards list", () => {
     await user.click(
       await screen.findByRole("button", { name: "Rename board Home" }),
     );
-    await user.clear(
-      screen.getByRole("textbox", { name: "New name for Home" }),
-    );
+    const input = screen.getByRole("textbox", { name: "New name for Home" });
+    await user.clear(input);
     await user.keyboard("{Enter}");
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Board name must be 1 to 100 characters.",
     );
+    await user.type(input, `${"y".repeat(101)}{Enter}`);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Board name must be 1 to 100 characters.",
+    );
     await user.keyboard("{Escape}");
+    expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
+    expect(fake.mutations()).toEqual([]);
+  });
+
+  it("AC4: pressing Escape on delete confirmation cancels and keeps the board", async () => {
+    const fake = new FakeApi();
+    fake.addBoard("Home");
+    const { user } = renderApp("/", fake);
+    await user.click(
+      await screen.findByRole("button", { name: "Delete board Home" }),
+    );
+    await screen.findByText(/This deletes 3 columns, 0 cards\./);
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
     expect(fake.mutations()).toEqual([]);
   });
@@ -120,7 +147,7 @@ describe("boards list", () => {
     expect(request?.query.get("version")).toBe("1");
   });
 
-  it("restores the list and shows an error when the API rejects a change", async () => {
+  it("AC4, AC17: restores the list and shows an error when the API rejects a change", async () => {
     const fake = new FakeApi();
     fake.addBoard("Home");
     fake.failNext("PATCH", /\/api\/boards\//, 500);
@@ -138,7 +165,7 @@ describe("boards list", () => {
     ).toBeInTheDocument();
   });
 
-  it("reloads the list with a notice on a 409", async () => {
+  it("AC4, AC17: reloads the list with a notice on a 409", async () => {
     const fake = new FakeApi();
     const board = fake.addBoard("Home");
     const { user } = renderApp("/", fake);

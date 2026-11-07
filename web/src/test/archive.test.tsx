@@ -137,7 +137,24 @@ describe("archive", () => {
     await waitFor(() => expect(fake.cards).toEqual([]));
   });
 
-  it("rolls back and shows an error when restoring fails", async () => {
+  it("AC8: canceling the delete dialog in the archive view leaves the column and sends nothing", async () => {
+    const fake = new FakeApi();
+    const board = fake.addBoard("Home");
+    seedDoing(fake, board.id);
+    const doing = fake.column(board.id, "Doing");
+    doing.archived_at = "2026-11-06T00:00:00Z";
+    const { user } = renderApp(`/b/${board.id}/archive`, fake);
+    await user.click(
+      await screen.findByRole("button", { name: "Delete column Doing" }),
+    );
+    expect(within(dialog()).getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Doing" })).toBeInTheDocument();
+    expect(fake.mutations()).toEqual([]);
+  });
+
+  it("AC8, AC17: rolls back and shows an error when restoring fails", async () => {
     const fake = new FakeApi();
     const board = fake.addBoard("Home");
     seedDoing(fake, board.id);
@@ -153,7 +170,7 @@ describe("archive", () => {
     expect(screen.getByRole("region", { name: "Doing" })).toBeInTheDocument();
   });
 
-  it("shows Board not found for an unknown board's archive", async () => {
+  it("AC8: shows Board not found for an unknown board's archive", async () => {
     renderApp("/b/missing/archive");
     expect(await screen.findByText("Board not found.")).toBeInTheDocument();
   });

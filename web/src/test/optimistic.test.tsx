@@ -59,7 +59,7 @@ describe("optimistic updates", () => {
     ).toHaveLength(2);
   });
 
-  it("rolls back a failed column rename, archive and delete", async () => {
+  it("AC17: rolls back a failed column rename, archive and delete", async () => {
     const { user, fake } = await renderBoard();
     fake.failNext("POST", /archive$/, 500);
     await user.click(
@@ -96,7 +96,7 @@ describe("optimistic updates", () => {
     expect(cardTitles("To Do")).toEqual([]);
   });
 
-  it("a 401 during a mutation shows the login screen", async () => {
+  it("AC3, AC17: a 401 during a mutation shows the login screen", async () => {
     const { user, fake } = await renderBoard();
     fake.user = null;
     await user.click(
