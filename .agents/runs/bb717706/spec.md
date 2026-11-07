@@ -1,0 +1,212 @@
+<!-- claude-readonly · claude-opus-5-5 · familia anthropic -->
+
+# Spec: Kambi slice 1, backend (run bb717706)
+
+## Context
+
+Slice 1 of Kambi was approved in `.agents/memory/specs/678ff13c.md`. This run builds only the server side: the repo skeleton, docker compose, Google login with the BFF pattern, and the REST API for boards, columns, card types and cards, all tested against a real PostgreSQL. The SPA in `web/` comes in the next run and will use this API through the same-origin `/api` proxy (ADR 0005).
+
+## Scope
+
+### Included
+
+- **Skeleton (ADRs 0001, 0003, 0004, 0011)**
+  - `api/` holds `pyproject.toml` (Python 3.12 pinned), `uv.lock`, and the `app` package with one sub-package per domain: `auth`, `boards`, `columns`, `card_types`, `cards`, plus `ordering.py`.
+  - Alembic is set up with an initial migration that creates `users`, `sessions`, `boards`, `board_columns`, `card_types` and `cards`, as described in the "Data model" section of `arquitectura.md`.
+  - The root `pyproject.toml` and `.coveragerc` move into `api/` (ADR 0001).
+  - `ruff` is configured with a line length of 100.
+- **Infrastructure (ADRs 0002, 0005)**
+  - `docker-compose.yml` defines three services:
+    - `db`: PostgreSQL 16 with the `db-data` volume, and no published port;
+    - `api`: runs `alembic upgrade head`, then uvicorn, published on `127.0.0.1:8001`;
+    - `web`: Vite, published on `127.0.0.1:5174`, with build context `web/` (which may not exist yet).
+  - `.env.example` lists `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET`, `POSTGRES_PASSWORD`, `DATABASE_URL` and the `Secure` cookie flag, all with placeholder values.
+  - `.gitignore` is extended to cover `.env`, `.venv`, `node_modules`, `dist` and coverage output.
+  - `LICENSE` (MIT) sits at the repo root.
+- **Auth (BFF)**
+  - `GET /api/auth/login` redirects to Google with `state` and `nonce` and the scopes `openid email profile`.
+  - `GET /api/auth/callback` creates or updates the user by `google_sub`, opens a session, and sets an `HttpOnly`, `SameSite=Lax` cookie. `Secure` is set through an environment variable. No Google token is stored.
+  - `GET /api/me` returns the user, and `POST /api/auth/logout` closes the session.
+  - Every `POST`, `PATCH` and `DELETE` requires `X-CSRF: 1`.
+  - In tests, Google is replaced by an injectable fake, so no network access is needed.
+- **REST API**
+  - **Boards:** list, create (seeding 3 columns and the yellow "Task" type), rename and delete. `GET /api/boards/{id}` returns the active board in one response, and `GET /api/boards/{id}/archive` returns the archived columns with their cards.
+  - **Columns:** create (`after_id`), rename, move, archive, restore, and delete with `?cards=move&target=…` or `?cards=delete`.
+  - **Card types:** create, rename, recolor (fixed palette) and delete with `?replace_with=…`. Names are unique per board, case-insensitive.
+  - **Cards:** create, edit (title, description, `type_id`), move (`column_id` plus `after_id`, to any column) and delete.
+  - **Rules:**
+    - the last active column cannot be deleted or archived;
+    - the last type cannot be deleted;
+    - every mutation of an existing entity takes `version` and returns `409` when it is stale;
+    - other users' data returns `404`;
+    - validation errors return `422`.
+  - **Ordering:** fractional, text `sort_key` values for columns, types and cards. A move updates only the moved row.
+  - The OpenAPI schema is exposed, so the next run can generate the TypeScript client from it.
+- **Tests**
+  - pytest against a real PostgreSQL, using the chain `TEST_DATABASE_URL` → testcontainers → `pgserver`. If none is available, only the database tests are skipped (ADR 0006).
+  - At least one test per acceptance criterion, with a name that says which criterion it covers.
+  - Line coverage of `app` is at least 80%, measured by the current `test_command`.
+- **README in English**
+  - The sections required by `codigo.md`: what it is, `## Features`, `## Installation`, `## Usage`, `## Tests`, `## Structure`.
+  - Plus `## Roadmap`, and a step-by-step Google OAuth setup with the redirect URI `http://localhost:5174/api/auth/callback`.
+  - It warns that `docker compose down -v` deletes all data.
+
+### Out of scope
+
+- Everything in `web/`: the SPA, Vite config, Vitest, the generated client, drag and drop, keyboard, the help panel, and confirmation dialogs. The UI-side criteria of spec 678ff13c (redirect to login, disabled buttons, dialogs, optimistic rollback, keyboard, help panel) move to the next run.
+- Account deletion and the `pg_dump` script (open question Q3 of 678ff13c, still unresolved).
+- CSP (Q5 of 678ff13c; it belongs to the frontend run).
+- Everything that spec 678ff13c already puts in later slices.
+
+## Acceptance criteria
+
+1. **Compose publishes only on localhost**
+   - **Given** the repo with a `.env` copied from `.env.example`,
+   - **When** `docker compose config` is run,
+   - **Then** `api` is published only on `127.0.0.1:8001`, `web` only on `127.0.0.1:5174`, and `db` has no published port.
+   - **And** `.env.example` contains every variable the app reads, none with a real value, and `.env` is ignored by git.
+   - Test: parse the YAML output of `docker compose config`, or the file itself if Docker is missing.
+
+2. **Login with the fake Google**
+   - **Given** the fake Google returns `sub="g-123"`, an email and a name,
+   - **When** the client follows `/api/auth/login` and then `/api/auth/callback` with the `state` it received,
+   - **Then** exactly one `users` row exists with `google_sub="g-123"`, the session cookie is `HttpOnly` and `SameSite=Lax`, `GET /api/me` returns that user, and no table holds a Google token.
+   - **And** a second login with the same `sub` reuses the same row.
+   - **And** a callback with a wrong `state`, or a `nonce` that does not match, returns `400` and creates no session.
+
+3. **Anonymous requests, logout and CSRF**
+   - **Given** a request with no valid session cookie,
+   - **When** it calls `/api/me` or any `/api/boards*` or `/api/columns*`, `/api/card-types*` or `/api/cards*` endpoint,
+   - **Then** it gets `401`.
+   - **And** after `POST /api/auth/logout` with `X-CSRF: 1`, the same cookie gets `401`.
+   - **And** with a valid session, every `POST`, `PATCH` and `DELETE` without `X-CSRF: 1` returns `403` and leaves the database unchanged. The test covers at least one mutation of each resource, plus logout.
+
+4. **Create a board with defaults**
+   - **Given** an authenticated user,
+   - **When** they `POST /api/boards` with `name: "  Home "`,
+   - **Then** the board is named `"Home"`, and `GET /api/boards/{id}` returns the active columns "To Do", "In Progress" and "Done" in that order, plus a single type "Task" with color `yellow`.
+   - **And** if seeding fails partway (forced error), no board, column or type row is left behind.
+
+5. **Rename, list and delete a board**
+   - **Given** a board with columns, types, cards and an archived column,
+   - **When** it is renamed with the correct `version`, the name changes and `version` goes up by 1.
+   - **When** it is deleted, no row of the board is left in any table.
+   - **And** an empty name, or a name longer than 100 characters after trimming, returns `422`.
+   - **And** `GET /api/boards` lists only the caller's boards.
+
+6. **Per-user isolation**
+   - **Given** user A's board, with its columns, types and cards,
+   - **When** user B reads, edits, moves, archives, restores or deletes any of those entities, or sends A's ids in `target`, `replace_with`, `column_id`, `type_id` or `after_id` from B's own board,
+   - **Then** the API returns `404`, or `422` for a foreign id inside a body or query parameter, and none of A's or B's rows change.
+   - The test is parametrized over every endpoint.
+
+7. **Optimistic versioning**
+   - **Given** any board, column, type or card at `version` n,
+   - **When** a mutation is sent with `version` n−1,
+   - **Then** the API returns `409`, and the row keeps its data and `version` n.
+   - **And** with `version` n the mutation succeeds and leaves `version` n+1.
+   - The test is parametrized over the four entities, and over rename, move and delete where they apply.
+
+8. **Fractional ordering**
+   - **Given** `ordering.py`,
+   - **When** a key is generated before, between or after existing keys, including 50 inserts in a row at the same position,
+   - **Then** every generated key sorts strictly between its neighbors in PostgreSQL's text order (with the collation used by the column), with no renumbering.
+   - **And** moving a column (`after_id`, or null for first) or a card changes the `sort_key` of exactly one row.
+
+9. **Columns: create, rename, move**
+   - **Given** a new board,
+   - **When** a column is created with `after_id=<To Do>`,
+   - **Then** it is the second column.
+   - **And** renaming it changes its name, with the same 1–100 rule as boards.
+   - **And** moving it to the end persists in a later `GET`.
+
+10. **Archive and restore a column**
+    - **Given** a column with 2 cards,
+    - **When** it is archived,
+    - **Then** neither the column nor its cards appear in `GET /api/boards/{id}`, and they do appear in `GET /api/boards/{id}/archive`.
+    - **And** editing or moving those cards, creating a card in that column, or using it as a move target returns `422`.
+    - **When** it is restored, it returns with its original `sort_key`, and the 2 cards come back with the same title, description, type, `sort_key` and `version`.
+
+11. **Delete a column**
+    - **Given** a column with N=3 cards and another column X that already has cards,
+    - **When** it is deleted with `?cards=move&target=X`,
+    - **Then** the 3 cards are at the end of X in their relative order, and the column no longer exists.
+    - **When** it is deleted with `?cards=delete`, the column and its 3 cards are gone.
+    - **And** the following return `422` and change nothing:
+      - a column with cards and no `cards` parameter;
+      - `cards=move` with no `target`;
+      - `target` equal to the column itself;
+      - `target` archived or from another board.
+    - **And** an empty column is deleted with no parameter.
+
+12. **The last active column is protected**
+    - **Given** a board with exactly one active column (the others deleted or archived),
+    - **When** that column is deleted or archived,
+    - **Then** the API returns `422` and changes nothing.
+
+13. **Card types**
+    - **Given** a board,
+    - **When** a type "Bug" is created with a palette color, it is listed in the board after "Task".
+    - **And** renaming and recoloring it is reflected in `GET /api/boards/{id}`.
+    - **And** the following return `422`:
+      - a color outside the palette;
+      - an empty name, or one longer than 50 characters;
+      - `"task"` when "Task" exists, on create or on rename.
+
+14. **Delete a type**
+    - **Given** "Bug", used by 2 cards (one of them in an archived column), and "Task",
+    - **When** "Bug" is deleted with `?replace_with=<Task>`,
+    - **Then** both cards have type "Task" and "Bug" no longer exists.
+    - **And** the following return `422`:
+      - "Bug" with cards and no `replace_with`;
+      - `replace_with` equal to the type itself, or from another board;
+      - deleting the board's last type.
+    - **And** an unused type is deleted with no parameter.
+
+15. **Card lifecycle**
+    - **Given** an active column,
+    - **When** `POST` creates a card with `title: " Buy milk "`,
+    - **Then** it is at the end of the column, titled `"Buy milk"`, with an empty description and the board's first type in `sort_key` order.
+    - **And** editing title, description and `type_id` persists the changes.
+    - **And** the following return `422`:
+      - an empty title, or one longer than 200 characters;
+      - a description longer than 10,000 characters;
+      - a `type_id` from another board.
+    - **And** a title containing `<script>` is stored and returned unchanged.
+    - **And** `DELETE` removes the card.
+
+16. **Move a card between any columns**
+    - **Given** cards a, b and c in "Done", and card x in "To Do",
+    - **When** x is moved with `column_id=<Done>` and `after_id=<a>`,
+    - **Then** "Done" lists a, x, b, c. Only x's row changed (its `sort_key`, `column_id` and `version`).
+    - **And** moving to any column (backward, or to a new column) needs no flow validation.
+    - **And** an `after_id` that does not belong to the target column returns `422`.
+
+17. **Test database chain and coverage gate**
+    - **Given** `TEST_DATABASE_URL` set, or Docker available with no variable, or neither,
+    - **When** `test_command` runs,
+    - **Then** the tests use, in that order, the given URL, a testcontainers container, or `pgserver`.
+    - **And** if none can start, only the tests that use the database are skipped, with a message.
+    - **And** never against `DATABASE_URL` for development, and never against SQLite.
+    - **And** with a database available, the command fails if line coverage of `app` is below 80%.
+
+## Risks and open questions
+
+- **Q1. Docker preflight vs ADR 0006.** Commit `5b0357d` added `preflight: docker info` and a comment saying tests "start PostgreSQL with testcontainers". ADR 0006 says `project.yaml` needs no Docker `preflight` thanks to the fallback chain. Should the preflight be removed, or should ADR 0006 be updated? This spec does not touch `project.yaml` without a decision.
+- **Q2. Dependencies missing from ADR 0011.** ADR 0011 does not list:
+  - a PostgreSQL driver (`psycopg`);
+  - an ASGI server (`uvicorn`);
+  - `itsdangerous`, which Authlib's Starlette integration needs to keep `state` and `nonce`;
+  - possibly `pydantic-settings` (it could be replaced by `os.environ`).
+  
+  Without at least the driver and uvicorn, the API cannot run. Do they get approved in this spec or in a new ADR?
+- **Q3. Palette.** This is Q2 of 678ff13c, still open. The backend needs the exact list of keys to validate `color`. The proposal is about 10 keys (`yellow`, `orange`, `red`, `pink`, `purple`, `blue`, `teal`, `green`, `gray`, `brown`), with hex values and contrast left to the frontend. Is that list confirmed?
+- **Q4. `version` on deletes and moves.** Spec 678ff13c says "every mutation carries a version" but does not say how for `DELETE` (query parameter `?version=` or body). The proposal is `?version=` on `DELETE`, and the body for `PATCH` and move. Board deletion also deletes children whose versions are not checked. Is that acceptable?
+- **Q5. `web` service without `web/`.** `docker compose up` will fail to build or mount `web` until the next run. Is it acceptable for the README to tell users to run `docker compose up db api` until then? Criterion 1 only validates `config`.
+- **Q6. `404` vs `422` for foreign ids inside the request.** Spec 678ff13c allows "404 or 422". Criterion 6 fixes `404` for path ids and `422` for ids in the body or query. Is that confirmed?
+- **Q7. Account deletion and `pg_dump`.** This is Q3 of 678ff13c, still open. They are out of scope here.
+- **Q8. Undecided ADRs 1–13.** This is Q1 of 678ff13c. This spec still follows the recommended options (BFF, `sub` as identity, deletion with move/delete, palette, uniqueness).
+- **Q9. README sections.** `codigo.md` requires `## Features` and `## Structure`, and the request adds `## Roadmap`. This spec includes all of them, so there is no real conflict.
+- **Risk: fractional keys and collation.** The text `sort_key` depends on the column's collation. If the database uses a locale collation, the ordering may not match what the algorithm assumes. The migration should declare `COLLATE "C"` on `sort_key`, and criterion 8 checks it.
+- **Risk: Authlib and the fake Google.** Faking Authlib's OIDC flow (ID token validation, JWKS) without network access may require putting the client behind an interface of our own. That adds code, but avoids patching Authlib internals.
+- **Risk: `pgserver` on macOS/ARM.** If its binaries fail on the user's machine, tests fall back to skipping, and the coverage gate can pass with no real tests. `test_command` should fail if every database test was skipped, but how to do that is still open.
