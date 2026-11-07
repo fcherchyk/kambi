@@ -1,7 +1,23 @@
+# Python
 __pycache__/
 .venv/
 .pytest_cache/
+.ruff_cache/
+
+# Secrets
 .env
-.DS_Store
+.env.*
+!.env.example
+
+# Node / frontend
+node_modules/
+dist/
+
+# Coverage
 .coverage
+.coverage.*
+coverage/
 htmlcov/
+
+# OS
+.DS_Store

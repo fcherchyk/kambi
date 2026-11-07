@@ -1,0 +1,55 @@
+# Local-only stack (ADR 0005): every port is published on 127.0.0.1, the database is not.
+# Secrets come from `.env` (copy `.env.example`).
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: kambi
+      POSTGRES_USER: kambi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kambi -d kambi"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: ./api
+    command: >-
+      sh -c "uv run --no-dev alembic upgrade head
+      && uv run --no-dev uvicorn --factory app.main:create_app
+      --host 0.0.0.0 --port 8001 --reload"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in .env}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?set GOOGLE_CLIENT_ID in .env}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?set GOOGLE_CLIENT_SECRET in .env}
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      OAUTH_REDIRECT_URI: ${OAUTH_REDIRECT_URI:-http://localhost:5174/api/auth/callback}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    volumes:
+      - ./api/app:/app/app
+      - ./api/migrations:/app/migrations
+    ports:
+      - "127.0.0.1:8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # The SPA arrives in the next run; until then start only `db` and `api`.
+  web:
+    build: ./web
+    environment:
+      API_URL: http://api:8001
+    volumes:
+      - ./web:/app
+      - web-node-modules:/app/node_modules
+    ports:
+      - "127.0.0.1:5174:5174"
+    depends_on:
+      - api
+
+volumes:
+  db-data:
+  web-node-modules:
