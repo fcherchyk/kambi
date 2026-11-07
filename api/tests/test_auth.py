@@ -1,6 +1,7 @@
 """Criteria 2 and 3: login with the fake Google, anonymous access, logout and CSRF."""
 
 import uuid
+from datetime import UTC
 
 import pytest
 from fastapi import FastAPI
@@ -80,6 +81,22 @@ def test_criterion_2_callback_without_login_cookie_returns_400(
     client: TestClient, engine: Engine
 ) -> None:
     response = client.get("/api/auth/callback", params={"code": "c", "state": "s"})
+
+    assert response.status_code == 400
+    assert count_rows(engine, "sessions") == 0
+
+
+def test_criterion_2_callback_without_code_returns_400(client: TestClient, engine: Engine) -> None:
+    state = start_login(client)
+    response = client.get("/api/auth/callback", params={"state": state})
+
+    assert response.status_code == 400
+    assert count_rows(engine, "sessions") == 0
+
+
+def test_criterion_2_callback_without_state_returns_400(client: TestClient, engine: Engine) -> None:
+    start_login(client)
+    response = client.get("/api/auth/callback", params={"code": "code"})
 
     assert response.status_code == 400
     assert count_rows(engine, "sessions") == 0
@@ -168,6 +185,22 @@ def test_criterion_3_anonymous_requests_get_401(client: TestClient, method: str,
 def test_criterion_3_invalid_session_cookie_gets_401(client: TestClient) -> None:
     client.cookies.set("kambi_session", "not-a-session")
 
+    assert client.get("/api/boards").status_code == 401
+
+
+def test_criterion_3_expired_session_cookie_gets_401(
+    client: TestClient, google: FakeGoogle, engine: Engine
+) -> None:
+    from datetime import datetime, timedelta
+
+    login(client, google, "g-expired")
+    with engine.begin() as conn:
+        conn.execute(
+            text("UPDATE sessions SET expires_at = :expired"),
+            {"expired": datetime.now(UTC) - timedelta(days=1)},
+        )
+
+    assert client.get("/api/me").status_code == 401
     assert client.get("/api/boards").status_code == 401
 
 

@@ -49,6 +49,11 @@ def test_criterion_13_every_palette_color_is_accepted(api: Api, board: dict) -> 
         assert api.add_type(board["id"], f"Type {index}", color)["color"] == color
 
 
+def test_criterion_13_name_of_50_chars_is_accepted(api: Api, board: dict) -> None:
+    created = api.add_type(board["id"], "x" * 50)
+    assert created["name"] == "x" * 50
+
+
 @pytest.mark.parametrize(
     "body",
     [
@@ -140,6 +145,21 @@ def test_criterion_14_the_last_type_cannot_be_deleted(
     before = snapshot(engine)
 
     response = api.delete(f"/api/card-types/{task['id']}", params={"version": 1})
+
+    assert response.status_code == 422
+    assert snapshot(engine) == before
+
+
+def test_criterion_14_last_type_cannot_be_deleted_even_with_replace_with(
+    api: Api, board: dict, engine: Engine
+) -> None:
+    task = board["card_types"][0]
+    before = snapshot(engine)
+
+    response = api.delete(
+        f"/api/card-types/{task['id']}",
+        params={"version": 1, "replace_with": task["id"]},
+    )
 
     assert response.status_code == 422
     assert snapshot(engine) == before

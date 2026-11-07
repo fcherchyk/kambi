@@ -46,6 +46,16 @@ def test_criterion_9_rename_follows_the_name_rule(api: Api, board: dict) -> None
     assert names(api.board(board["id"]))[0] == "Backlog"
 
 
+@pytest.mark.parametrize("name", ["", "   ", "x" * 101])
+def test_criterion_9_invalid_column_names_return_422(api: Api, board: dict, name: str) -> None:
+    assert api.post(f"/api/boards/{board['id']}/columns", {"name": name}).status_code == 422
+
+
+def test_criterion_9_name_of_100_chars_after_trim_is_valid(api: Api, board: dict) -> None:
+    created = api.add_column(board["id"], "  " + "x" * 100 + "  ")
+    assert created["name"] == "x" * 100
+
+
 def test_criterion_9_move_to_the_end_persists(api: Api, board: dict) -> None:
     todo = column_named(board, "To Do")
     done = column_named(board, "Done")
@@ -150,6 +160,19 @@ def test_criterion_10_restoring_an_active_column_returns_422(api: Api, board: di
     todo = column_named(board, "To Do")
 
     assert api.post(f"/api/columns/{todo['id']}/restore", {"version": 1}).status_code == 422
+
+
+def test_criterion_10_creating_column_after_archived_column_returns_422(
+    api: Api, archived_setup: dict
+) -> None:
+    board_id = archived_setup["board"]["id"]
+    column = archived_setup["column"]
+
+    response = api.post(
+        f"/api/boards/{board_id}/columns", {"name": "New", "after_id": column["id"]}
+    )
+
+    assert response.status_code == 422
 
 
 def test_criterion_10_new_columns_never_reuse_an_archived_columns_key(

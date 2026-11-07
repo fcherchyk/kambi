@@ -108,3 +108,11 @@ def test_criterion_7_version_must_be_positive(api: Api, ids: dict) -> None:
     response = api.patch(f"/api/boards/{ids['board']}", {"name": "x", "version": 0})
 
     assert response.status_code == 422
+
+
+def test_criterion_7_future_version_returns_409(api: Api, ids: dict, engine: Engine) -> None:
+    before = snapshot(engine)
+    response = api.patch(f"/api/boards/{ids['board']}", {"name": "x", "version": 99})
+
+    assert response.status_code == 409
+    assert snapshot(engine) == before

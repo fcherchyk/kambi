@@ -90,6 +90,20 @@ def test_criterion_15_type_from_another_board_returns_422(
     assert snapshot(engine) == before
 
 
+def test_criterion_15_unknown_type_id_returns_422(api: Api, board: dict, engine: Engine) -> None:
+    unknown_type = "00000000-0000-0000-0000-000000000000"
+    todo = column_named(board, "To Do")
+    card = api.add_card(todo["id"], "Card")
+    before = snapshot(engine)
+
+    created = api.post(f"/api/columns/{todo['id']}/cards", {"title": "x", "type_id": unknown_type})
+    edited = api.patch(f"/api/cards/{card['id']}", {"type_id": unknown_type, "version": 1})
+
+    assert created.status_code == 422
+    assert edited.status_code == 422
+    assert snapshot(engine) == before
+
+
 def test_criterion_15_html_in_titles_is_stored_unchanged(api: Api, board: dict) -> None:
     todo = column_named(board, "To Do")
     title = "<script>alert('x')</script>"
@@ -193,4 +207,36 @@ def test_criterion_16_after_id_outside_the_target_column_returns_422(
 
     assert wrong_column.status_code == 422
     assert itself.status_code == 422
+    assert snapshot(engine) == before
+
+
+def test_criterion_16_move_to_empty_column_with_null_after_id(api: Api, board: dict) -> None:
+    todo = column_named(board, "To Do")
+    done = column_named(board, "Done")
+    c = api.add_card(todo["id"], "Card")
+
+    response = api.post(
+        f"/api/cards/{c['id']}/move",
+        {"column_id": done["id"], "after_id": None, "version": 1},
+    )
+
+    assert response.status_code == 200
+    detail = api.board(board["id"])
+    assert [card["title"] for card in cards_in(detail, done["id"])] == ["Card"]
+    assert cards_in(detail, todo["id"]) == []
+
+
+def test_criterion_16_move_to_unknown_column_returns_422(
+    api: Api, move_setup: dict, engine: Engine
+) -> None:
+    x = move_setup["x"]
+    unknown_col = "00000000-0000-0000-0000-000000000000"
+    before = snapshot(engine)
+
+    response = api.post(
+        f"/api/cards/{x['id']}/move",
+        {"column_id": unknown_col, "after_id": None, "version": 1},
+    )
+
+    assert response.status_code == 422
     assert snapshot(engine) == before

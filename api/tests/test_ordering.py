@@ -112,3 +112,41 @@ def test_criterion_8_moving_a_column_changes_exactly_one_row(api: Api, engine: E
     assert [str(row["id"]) for row in changed] == [done["id"]]
     assert changed[0]["sort_key"] < todo["sort_key"]
     assert after["cards"] == before["cards"]
+
+
+def test_criterion_8_moving_a_column_after_another_changes_exactly_one_row(
+    api: Api, engine: Engine
+) -> None:
+    board = api.board(api.create_board("Home")["id"])
+    todo, doing, done = board["columns"]
+    before = snapshot(engine)
+
+    response = api.post(f"/api/columns/{todo['id']}/move", {"after_id": doing["id"], "version": 1})
+
+    assert response.status_code == 200
+    after = snapshot(engine)
+    changed = [row for row in after["board_columns"] if row not in before["board_columns"]]
+    assert [str(row["id"]) for row in changed] == [todo["id"]]
+    assert doing["sort_key"] < changed[0]["sort_key"] < done["sort_key"]
+
+
+def test_criterion_8_moving_a_card_changes_sort_key_of_exactly_one_row(
+    api: Api, engine: Engine
+) -> None:
+    board = api.board(api.create_board("Home")["id"])
+    todo, _, done = board["columns"]
+    c1 = api.add_card(done["id"], "1")
+    c2 = api.add_card(done["id"], "2")
+    cx = api.add_card(todo["id"], "x")
+    before = snapshot(engine)
+
+    response = api.post(
+        f"/api/cards/{cx['id']}/move",
+        {"column_id": done["id"], "after_id": c1["id"], "version": 1},
+    )
+
+    assert response.status_code == 200
+    after = snapshot(engine)
+    changed_cards = [row for row in after["cards"] if row not in before["cards"]]
+    assert [str(row["id"]) for row in changed_cards] == [cx["id"]]
+    assert c1["sort_key"] < changed_cards[0]["sort_key"] < c2["sort_key"]
