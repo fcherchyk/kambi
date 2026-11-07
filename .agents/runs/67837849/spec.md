@@ -1,0 +1,201 @@
+<!-- claude-readonly · claude-opus-5-5 · familia anthropic -->
+
+# Spec: Kambi slice 1, frontend (`web/`)
+
+## Context
+
+The slice 1 backend (run bb717706) is in `main`, but nobody can use Kambi without a browser UI. This run adds the React/TypeScript SPA in `web/` that covers the frontend part of the approved spec `678ff13c`: login, boards, columns, card types, cards, archive and keyboard use. It talks only to the existing API, and backend behavior does not change.
+
+## Scope
+
+### Included
+
+- **Project and tooling** (ADRs 0001, 0003, 0011)
+  - `web/` uses React, strict TypeScript, Vite and pnpm, with `pnpm-lock.yaml` versioned. ESLint and Prettier use their default configuration.
+  - Runtime dependencies are React, React Router and `@dnd-kit`. Dev dependencies are Vite, Vitest, `@vitest/coverage-v8`, Testing Library, jsdom, ESLint, Prettier and the OpenAPI client generator (see Q1).
+  - pnpm does not run dependency install scripts unless each one is approved.
+- **Typed API client** (ADR 0008)
+  - The client is generated from the FastAPI OpenAPI schema. The generated file is versioned, and a `pnpm` script regenerates it from the schema that `api/` exports.
+  - One wrapper adds `X-CSRF: 1` to every `POST`, `PATCH` and `DELETE`, and sends cookies (`credentials: "same-origin"`).
+- **Dev server and compose** (ADR 0005)
+  - Vite serves on port `5174` with `strictPort` and listens on all interfaces inside the container.
+  - `/api` is proxied to `API_URL`, which defaults to `http://localhost:8001` outside compose.
+  - `web/Dockerfile` follows mapa-mental's web Dockerfile: `npm_config_store_dir=/pnpm-store`, `CI=true`, and `node_modules` in the `web-node-modules` volume. `docker compose up --build` starts `db`, `api` and `web`.
+  - The "arrives in the next run" comment is removed from `docker-compose.yml`.
+  - `.agents/project.yaml` keeps working: `setup_command` installs `web/`, and `test_command` runs Vitest with coverage.
+- **Session**
+  - The login screen has a "Sign in with Google" action that does a full-page navigation to `/api/auth/login`.
+  - The SPA calls `/api/me` on start.
+  - Any `401` sends the user to the login screen.
+  - The header shows the user and a "Log out" button, which calls `POST /api/auth/logout`.
+- **Boards list** (`/`)
+  - The user can create, rename and delete boards.
+  - Deleting a board asks for confirmation and shows its column and card counts.
+- **Board view** (`/b/:boardId`)
+  - Active columns are shown in order, each with its cards.
+  - Columns can be added after a given column or at the end, renamed, reordered (◀ ▶ buttons and drag and drop), archived and deleted.
+  - The last active column cannot be deleted or archived.
+- **Delete-column dialog**
+  - Options: "Move N cards to…" (with a target column picker), "Delete the column and its N cards" and "Cancel".
+  - Initial focus is on "Cancel".
+  - An empty column is deleted without the dialog.
+- **Card types**
+  - A per-board panel lists the types. The user can add, rename, recolor (the 10 palette keys from `api/app/schemas.py`) and delete them.
+  - Deleting a type that is in use opens a replacement dialog. An unused type is deleted without a dialog.
+  - The last type cannot be deleted.
+  - Each card shows its type's color.
+- **Cards**
+  - An inline input at the end of each column creates cards. Enter creates the card and leaves a new input open, and Escape cancels.
+  - The card dialog at `/b/:boardId/c/:cardId` edits the title, the description (plain text, `<textarea>`) and the type.
+  - Cards move between any columns and positions by drag and drop, by Shift+Arrow and with "Move to…".
+  - Deleting a card asks for confirmation.
+  - All user text is rendered as plain text. There is no `dangerouslySetInnerHTML`.
+- **Archive view** (`/b/:boardId/archive`)
+  - Archived columns are shown with their cards, read-only.
+  - Each archived column has "Restore" and "Delete" actions. Delete uses the same dialog as the board view.
+- **Keyboard** (ADR 0007)
+  - The selected-card model from criterion 20 of spec `678ff13c`.
+  - Every shortcut has a visible button, and a "?" panel (key and button) lists the shortcuts from a single registry.
+- **Optimistic updates** (ADR 0008)
+  - Every mutation changes the UI first, then confirms or rolls back.
+  - On a `409` the SPA reloads the board and shows a notice. Any other error rolls the change back and shows an error notice.
+- **Tests and docs**
+  - Vitest and Testing Library run against an in-memory fake API. The fake is hand-written and implements the routes the SPA uses, including the `401`, `404`, `409` and `422` responses.
+  - `coverage.thresholds.lines: 80` is set in the Vitest config.
+  - `README.md` is updated in the Usage section (how to open the app, shortcuts), the Tests section and the Structure section. `.agents/memory/wiki/index.md` is updated too.
+
+### Out of scope
+
+- Any change to backend behavior, endpoints or migrations.
+- Board-level keyboard shortcuts beyond those in criterion 20 of `678ff13c`.
+- A production build or static hosting, CSP headers (Q5 of `678ff13c` stays open), and a PWA or mobile UI.
+- Real-time sync between tabs. A change made elsewhere is only detected through `409`.
+- Everything already out of scope in `678ff13c` (search, filters, archiving single cards, Markdown, and so on).
+
+## Acceptance criteria
+
+All criteria are tested with Vitest and Testing Library against the in-memory fake API unless they say otherwise. Each test name starts with the criterion number (for example `AC7: …`).
+
+1. **Dev server and proxy**
+   - **Given** the `web/` config,
+   - **When** the Vite config is loaded with no `API_URL` and then with `API_URL=http://api:8001`,
+   - **Then** the server port is `5174` with `strictPort`, and `/api` is proxied to `http://localhost:8001` and to `http://api:8001` respectively.
+   - **And** `docker compose config` shows the `web` service built from `./web`, published only on `127.0.0.1:5174`, with `node_modules` in the `web-node-modules` volume. The Dockerfile sets `npm_config_store_dir=/pnpm-store` and `CI=true`. This part is checked by the reviewer or a config test.
+2. **CSRF header on mutations**
+   - **Given** the API client,
+   - **When** any `POST`, `PATCH` or `DELETE` is sent,
+   - **Then** the request carries `X-CSRF: 1`, and `GET` requests do not need it. A test sends one mutation per resource (board, column, card type, card, logout) and checks the header.
+3. **Session and login**
+   - **Given** the fake API answers `/api/me` with `401`,
+   - **When** any route is opened (`/`, `/b/:id`, `/b/:id/c/:cid`),
+   - **Then** the login screen is shown, and its "Sign in with Google" action points to `/api/auth/login`.
+   - **Given** a valid session,
+   - **When** "Log out" is clicked,
+   - **Then** `POST /api/auth/logout` is sent and the login screen is shown.
+   - **And** a `401` on any later call also shows the login screen.
+4. **Boards list**
+   - **Given** a logged-in user with no boards,
+   - **When** they create "Home",
+   - **Then** "Home" is listed, and opening it shows "To Do", "In Progress" and "Done".
+   - **When** they rename it, the new name is shown.
+   - **When** the name is empty or longer than 100 chars, the client shows a validation message and sends nothing.
+   - **When** they delete it, a confirmation shows its column and card counts (for example "3 columns, 5 cards"). Confirming removes it, and canceling keeps it.
+5. **Columns: add, rename, reorder**
+   - **Given** a board with "To Do", "In Progress" and "Done",
+   - **When** a column is added after "To Do", it shows in second position.
+   - **When** a column is renamed, the new name shows.
+   - **When** "Done" is moved with ◀, it shows before "In Progress", and the fake receives one `POST /columns/{id}/move` with the correct `after_id` and `version`.
+   - **And** ◀ is disabled on the first column and ▶ on the last.
+   - **And** a drag-and-drop column move sends the same request (pointer-event smoke test).
+6. **Delete-column dialog**
+   - **Given** a column with N = 2 cards and another active column "Done",
+   - **When** delete is requested,
+   - **Then** a dialog shows "Move 2 cards to…", "Delete the column and its 2 cards" and "Cancel", and focus starts on "Cancel".
+   - **When** "Move 2 cards to…" is used with "Done" as the target, the request is `DELETE …?version=…&cards=move&target=<Done>`, and both cards show at the end of "Done" in their relative order.
+   - **When** "Delete the column and its 2 cards" is chosen, the request uses `cards=delete` and the column and its cards disappear.
+   - **When** "Cancel" is chosen or Escape is pressed, nothing is sent.
+   - **And** an empty column is deleted with no dialog.
+7. **The last active column is protected**
+   - **Given** a board with one active column,
+   - **When** the board view renders,
+   - **Then** that column's "Archive" and "Delete" buttons are disabled.
+8. **Archive view**
+   - **Given** a column "Doing" with 2 cards,
+   - **When** it is archived from the board view,
+   - **Then** it disappears from the board, and `/b/:boardId/archive` shows it with its 2 cards.
+   - **And** the archive view has no edit, move or add controls.
+   - **When** "Restore" is clicked, the column comes back to the board at its original position with both cards.
+   - **When** "Delete" is clicked in the archive view, it uses the dialog from criterion 6.
+9. **Card types**
+   - **Given** a board with the type "Task" (yellow),
+   - **When** the type "Bug" is added with color `red`, it is listed.
+   - **When** "Bug" is renamed or recolored, every card of that type shows the new color.
+   - **And** the color picker offers exactly the 10 palette keys.
+   - **And** a duplicate name (case-insensitive) or an empty name shows an error: a client-side message, or the API's `422` shown as an error notice.
+10. **Deleting a type**
+    - **Given** "Bug" used by 3 cards and "Task",
+    - **When** "Bug" is deleted,
+    - **Then** a dialog asks for a replacement type, and only the other types are offered. Confirming with "Task" sends `replace_with=<Task>`, and the 3 cards show Task's color.
+    - **And** an unused type is deleted with no dialog.
+    - **And** the delete button of the board's last type is disabled.
+11. **Creating a card**
+    - **Given** the column "To Do",
+    - **When** the user types "  Buy milk  " in the inline input at the end of the column and presses Enter,
+    - **Then** "Buy milk" shows at the end of "To Do" with the first type's color, and a new empty input has focus.
+    - **When** Escape is pressed, the input closes and nothing is sent.
+    - **And** an empty or whitespace-only title sends nothing.
+12. **Card dialog**
+    - **Given** a card,
+    - **When** `/b/:boardId/c/:cardId` is rendered directly,
+    - **Then** a dialog shows its title, description and type over the board.
+    - **When** the title, description or type is edited and saved, the fake receives one `PATCH` with `version`, and the card shows the change.
+    - **When** Escape is pressed or the close button is clicked, the URL goes back to `/b/:boardId`.
+    - **And** a card id the board does not have shows a "Card not found" notice and returns to the board.
+13. **Plain-text rendering**
+    - **Given** a board, column, type or card whose name, title or description is `<script>alert(1)</script><b>x</b>`,
+    - **When** it is rendered in the board, the boards list, the dialog or the archive,
+    - **Then** the literal text is visible, and no `script` or `b` element is created from it.
+14. **Moving a card**
+    - **Given** card A in "To Do" and the selected card B in "To Do",
+    - **When** B is moved with "Move to…" to "Done" after a given card,
+    - **Then** B shows in that position, and the fake receives one `POST /cards/{B}/move` with `column_id`, `after_id` and `version`.
+    - **When** Shift+→ is pressed on a selected card, it moves to the end of the next column. **When** Shift+↑ or Shift+↓ is pressed, it swaps places with its neighbor in the same column.
+    - **And** a drag-and-drop card move sends the same request (pointer-event smoke test).
+15. **Deleting a card**
+    - **Given** a selected card,
+    - **When** Delete is pressed or its delete button is clicked,
+    - **Then** a confirmation dialog appears. Confirming removes the card, and canceling leaves it unchanged with nothing sent.
+16. **Keyboard model and help panel**
+    - **Given** a board with a selected card,
+    - **When** ← → ↑ ↓ are pressed, the selection moves across and within columns.
+    - **When** Enter is pressed, the card dialog opens. F2 starts renaming the card inline, `N` opens the add-card input in the selected column, and Escape closes the open dialog.
+    - **Then** each action also has a visible button.
+    - **When** "?" is pressed or the "?" button is clicked, a panel lists every shortcut.
+    - **And** a test iterates over the shortcut registry and fails if any shortcut is missing from the panel or has no button.
+    - **And** shortcuts are ignored while focus is in a text input.
+17. **Optimistic update, rollback and 409**
+    - **Given** a fake API that fails a card move with `500`,
+    - **When** the user moves a card,
+    - **Then** the card first shows in the new position, then returns to the original one, and an error notice is shown.
+    - **Given** a fake API that answers a rename with `409`,
+    - **When** the user renames a card,
+    - **Then** the board is fetched again, the server's data is shown, and a notice says the board changed elsewhere and was reloaded.
+18. **Test and coverage gate**
+    - **Given** `web/`,
+    - **When** `pnpm --dir web exec vitest run --coverage` runs (as `test_command` does),
+    - **Then** all tests pass, and the command fails if line coverage of `web/src` (excluding tests and the generated client) is below 80%.
+    - **And** `tsc --noEmit` passes with `strict`.
+
+## Risks and open questions
+
+- **Q1 – Client generator not covered by ADR 0011.** The ADR names only React Router and `@dnd-kit` on the frontend, while ADR 0008 requires a generated client. A generator (for example `openapi-typescript` as a dev dependency, with types only plus a thin hand-written `fetch` wrapper) needs a justification in this spec or an ADR. The same applies to Testing Library and jsdom, although `codigo.md` implies them. Which generator, and should ADR 0011 be amended?
+- **Q2 – Board delete counts are not in the API.** `GET /api/boards` (`BoardOut`) returns no counts. The SPA can get them from `GET /api/boards/{id}` plus `/archive` before it shows the confirmation, which costs two extra requests. Is that acceptable, or should a later backend run add counts? This run must not change the backend. The open question is also whether the counts include archived columns and cards. This spec assumes they do (everything that gets deleted).
+- **Q3 – "Type in use" with archived cards.** `BoardDetail` only includes cards of active columns. A type used only by archived cards looks unused, so the SPA would delete it without a dialog and get `422`. Proposal: on that `422`, open the replacement dialog. Alternatively, the SPA could count across `/archive` too.
+- **Q4 – Login failure page.** `/api/auth/callback` answers `400` JSON on failure (invalid state or nonce), so the user sees raw JSON instead of the SPA. Fixing that would need a backend change (a redirect to `/?login_error=…`), which is out of scope here. This is noted for the summary.
+- **Q5 – Card in an archived column** (Q7 of `678ff13c`). For `/b/:boardId/c/:cardId` with an archived card, this spec treats it as "not found" on the board (criterion 12). Should it open read-only, or redirect to the archive view?
+- **Q6 – Shift+↑/↓ and F2 semantics.** Spec `678ff13c` does not say whether Shift+↑/↓ reorders within a column, or whether F2 renames inline or in the dialog. This spec assumes reorder and inline rename. These must match mapa-mental's muscle memory (ADR 0007), so they should be confirmed against mapa-mental.
+- **Q7 – Palette hex values.** The API only defines keys (Q2 of `678ff13c`). The SPA must pick hex values and text contrast for the 10 keys. Who approves them?
+- **Q8 – Generated client drift.** The generated file is versioned so that tests run without the API. If `api/` changes and nobody regenerates the client, it goes stale. Should a check (regenerate, then `git diff --exit-code`) be added to `test_command`? Regenerating needs `uv` and `api/` installed.
+- **Risk – mapa-mental's Dockerfile is not in this repo.** The compose requirements (pnpm store, `CI=true`, `node_modules` volume) are spelled out in criterion 1. The rest of the Dockerfile is copied by convention, and the reviewer should compare it with mapa-mental's.
+- **Risk – testing drag and drop in jsdom.** `@dnd-kit` relies on pointer events and layout that jsdom does not provide. Moves are covered through buttons and the keyboard, and drag only through a smoke test (criteria 5 and 14), as `678ff13c` already proposed.
+- **Risk – `preflight: docker info`.** `.agents/project.yaml` still requires Docker, while ADR 0006 says no Docker `preflight` is needed. Frontend tests do not need Docker. The mismatch predates this run, and this spec does not resolve it.
