@@ -15,14 +15,16 @@ The web UI (`web/`) arrives in the next iteration.
 - Boards: list, create, rename and delete. New boards start with the columns "To Do",
   "In Progress" and "Done" and a yellow "Task" card type.
 - Columns: create at any position, rename, reorder, archive and restore (with their cards),
-  and delete, either moving the cards to another column or deleting them.
+  and delete, either moving the cards to another column or deleting them. Archived columns
+  are read-only until restored.
 - Card types per board: name (unique per board, case-insensitive) and a palette color.
   Deleting a type in use reassigns its cards to another type.
 - Cards: title, plain-text description and type. They move freely between any columns.
 - Manual ordering with fractional sort keys: a move updates a single row.
 - Optimistic concurrency: every change carries a `version`, and a stale one returns `409`.
-- Per-user isolation: other users' data answers `404`.
-- An OpenAPI schema at `/openapi.json`, used to generate the TypeScript client.
+- Per-user isolation: another user's ids in the URL answer `404`; ids from another board
+  inside a body or query string answer `422`.
+- An OpenAPI schema at `/openapi.json`, for generating the TypeScript client.
 
 ## Installation
 
@@ -46,7 +48,8 @@ The web UI (`web/`) arrives in the next iteration.
    - Application type: **Web application**.
    - Authorized JavaScript origins: `http://localhost:5174`.
    - Authorized redirect URIs: `http://localhost:5174/api/auth/callback`.
-4. Copy the **Client ID** and **Client secret**. You will put them in `.env` in the next step.
+4. Copy the **Client ID** and **Client secret** from the client's details. In the next step,
+   the Client ID goes in `GOOGLE_CLIENT_ID` and the secret in `GOOGLE_CLIENT_SECRET`.
 
 If you reuse mapa-mental's OAuth client, just add the redirect URI above to it.
 
@@ -62,6 +65,7 @@ Edit `.env`:
 - `SESSION_SECRET`: a long random string, for example from
   `python3 -c "import secrets; print(secrets.token_urlsafe(48))"`.
 - `POSTGRES_PASSWORD`: any password. Use the same one inside `DATABASE_URL`.
+- `OAUTH_REDIRECT_URI`: leave the default, `http://localhost:5174/api/auth/callback`.
 - `COOKIE_SECURE`: keep `false` for `http://localhost`.
 
 `.env` is git-ignored. Never commit it.
@@ -86,13 +90,23 @@ All ports are published on `127.0.0.1` only. The database port is not published 
 
 ## Usage
 
-Sign in by opening `http://localhost:5174/api/auth/login` in the browser. After Google
-redirects back, the session cookie is set and the API answers for your user. The interactive
-API docs are at `http://127.0.0.1:8001/docs`.
+Sign-in needs the `web` service on port 5174: Google redirects to
+`http://localhost:5174/api/auth/callback`, and the SPA's proxy forwards it to the API. So
+the login flow completes once `web/` exists. Until then, the API is reachable on its own,
+and its interactive docs are at `http://127.0.0.1:8001/docs`.
 
 Mutations need the `X-CSRF: 1` header. Changes to an existing entity send the `version` the
 client last saw: in the body for `PATCH` and the `move`/`archive`/`restore` actions, and as
 `?version=` for `DELETE`.
+
+For example, creating a board, with a session cookie from the login flow:
+
+```sh
+curl -s -X POST http://127.0.0.1:8001/api/boards \
+  -H 'Content-Type: application/json' -H 'X-CSRF: 1' \
+  -b 'kambi_session=<session cookie value>' \
+  -d '{"name": "Home"}'
+```
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -128,6 +142,9 @@ uv sync --directory api
 uv run --directory api pytest -q --cov=app --cov-report=term-missing --cov-fail-under=80
 ```
 
+This is the `test_command` of `.agents/project.yaml` for the API part. The frontend part is
+added once `web/` exists.
+
 The tests run against a real PostgreSQL, never SQLite and never the development database.
 They pick the first available option:
 
@@ -138,6 +155,11 @@ They pick the first available option:
 If none of them works, only the database tests are skipped, with the reason. Google is
 replaced by a fake, so the tests need no network. The command fails if line coverage of
 `app` is below 80%.
+
+The suite covers each acceptance criterion of the slice 1 backend spec, with test names that
+state the criterion. In short: the compose and `.env.example` rules, the Google login and
+its state and nonce checks, `401` and `403` handling, board, column, card type and card
+rules, per-user isolation, optimistic versions, fractional ordering, and the database chain.
 
 Lint and format with `uv run --directory api ruff check .` and
 `uv run --directory api ruff format .`.
@@ -152,6 +174,10 @@ api/
     columns/      columns: placement, archive/restore, deletion with cards
     card_types/   card types and deletion with replacement
     cards/        cards: create, edit, move, delete
+    config.py     settings read from environment variables
+    db.py         engine, sessions and the declarative base
+    errors.py     shared HTTP errors and the version check
+    schemas.py    shared field types (names, versions, palette)
     ordering.py   fractional sort keys
     main.py       app factory and the CSRF check
   migrations/     Alembic migrations
@@ -162,13 +188,17 @@ docker-compose.yml  db, api and web services (127.0.0.1 only)
 
 ## Roadmap
 
-- **Slice 1, frontend (next):** the React/TypeScript SPA in `web/`, with drag and drop,
-  keyboard shortcuts with visible buttons and a `?` help panel, the card dialog, and the
-  archive view.
-- **Slice 2:** archive single cards, filter the board by card type, search card titles.
-- **Slice 3:** link cards to mapa-mental ideas in both directions, keyed by the Google `sub`.
-- **Slice 4:** deployment beyond localhost and a mobile-friendly view on the same API.
-- Open: account deletion and a `pg_dump` backup script.
+- [x] Slice 1, backend: skeleton, docker compose, Google login (BFF), the REST API for
+  boards, columns, card types and cards, and the tests.
+- [ ] Slice 1, frontend: the React/TypeScript SPA in `web/`, with its proxy, a client
+  generated from the OpenAPI schema, drag and drop, keyboard shortcuts with visible buttons,
+  a `?` help panel, the card dialog and the archive view.
+- [ ] Make `test_command` fail when every database test is skipped.
+- [ ] Verify `docker compose up` end to end, including building the API image.
+- [ ] Slice 2: archive single cards, filter the board by card type, search card titles.
+- [ ] Slice 3: link cards to mapa-mental ideas in both directions, keyed by the Google `sub`.
+- [ ] Slice 4: deployment beyond localhost, and a mobile or PWA view on the same API.
+- [ ] Open: account deletion and a `pg_dump` backup script.
 
 ## License
 
