@@ -70,8 +70,14 @@ def callback(request: Request, db: DbSession, code: str = "", state: str = "") -
 
     user = sessions.upsert_user(db, identity)
     token = sessions.open_session(db, user)
-    response = RedirectResponse("/", 302)
+    response = session_redirect(settings, token)
     response.delete_cookie(sessions.OAUTH_COOKIE, path="/api/auth")
+    return response
+
+
+def session_redirect(settings: Settings, token: str) -> RedirectResponse:
+    """Redirect to the app with the session cookie set."""
+    response = RedirectResponse("/", 302)
     response.set_cookie(
         sessions.SESSION_COOKIE,
         token,

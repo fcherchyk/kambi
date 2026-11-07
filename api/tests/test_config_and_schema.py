@@ -22,15 +22,22 @@ def test_settings_from_env_with_defaults() -> None:
     assert settings.database_url == REQUIRED["DATABASE_URL"]
     assert settings.oauth_redirect_uri == DEFAULT_REDIRECT_URI
     assert settings.cookie_secure is False
+    assert settings.dev_login is False
 
 
 def test_settings_from_env_reads_optional_values() -> None:
-    env = {**REQUIRED, "COOKIE_SECURE": "true", "OAUTH_REDIRECT_URI": "https://k.example/cb"}
+    env = {
+        **REQUIRED,
+        "COOKIE_SECURE": "true",
+        "OAUTH_REDIRECT_URI": "https://k.example/cb",
+        "DEV_LOGIN": "true",
+    }
 
     settings = Settings.from_env(env)
 
     assert settings.cookie_secure is True
     assert settings.oauth_redirect_uri == "https://k.example/cb"
+    assert settings.dev_login is True
 
 
 def test_settings_from_env_reports_missing_variables() -> None:

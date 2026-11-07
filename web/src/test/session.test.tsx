@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { FakeApi } from "./fakeApi";
 import { renderApp, screen } from "./render";
 
@@ -50,5 +50,23 @@ describe("session", () => {
     expect(
       screen.getByRole("link", { name: "Sign in with Google" }),
     ).toBeInTheDocument();
+  });
+
+  it("offers the dev login only when VITE_DEV_LOGIN is true", async () => {
+    const fake = new FakeApi();
+    fake.user = null;
+    vi.stubEnv("VITE_DEV_LOGIN", "true");
+    const { unmount } = renderApp("/", fake);
+    expect(
+      await screen.findByRole("link", { name: "Sign in as dev user" }),
+    ).toHaveAttribute("href", "/api/auth/dev-login");
+    unmount();
+
+    vi.unstubAllEnvs();
+    renderApp("/", fake);
+    await screen.findByRole("link", { name: "Sign in with Google" });
+    expect(
+      screen.queryByRole("link", { name: "Sign in as dev user" }),
+    ).not.toBeInTheDocument();
   });
 });

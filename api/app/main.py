@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import Engine
 from sqlalchemy.exc import IntegrityError
 
+from app.auth.dev import router as dev_login_router
 from app.auth.google import GoogleOAuthClient, IdentityProvider
 from app.auth.router import router as auth_router
 from app.boards.router import router as boards_router
@@ -37,6 +38,8 @@ def create_app(
     app.add_exception_handler(IntegrityError, integrity_error_handler)
     for router in (auth_router, boards_router, columns_router, card_types_router, cards_router):
         app.include_router(router)
+    if settings.dev_login:
+        app.include_router(dev_login_router)
     return app
 
 

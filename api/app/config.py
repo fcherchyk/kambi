@@ -12,6 +12,7 @@ ENV_VARS = (
     "SESSION_SECRET",
     "OAUTH_REDIRECT_URI",
     "COOKIE_SECURE",
+    "DEV_LOGIN",
 )
 
 DEFAULT_REDIRECT_URI = "http://localhost:5174/api/auth/callback"
@@ -25,6 +26,8 @@ class Settings:
     session_secret: str
     oauth_redirect_uri: str = DEFAULT_REDIRECT_URI
     cookie_secure: bool = False
+    # Enables `/api/auth/dev-login` (offline sandbox only, see `run-sandbox.sh`).
+    dev_login: bool = False
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Settings":
@@ -39,6 +42,7 @@ class Settings:
             session_secret=env["SESSION_SECRET"],
             oauth_redirect_uri=env.get("OAUTH_REDIRECT_URI") or DEFAULT_REDIRECT_URI,
             cookie_secure=parse_bool(env.get("COOKIE_SECURE", "")),
+            dev_login=parse_bool(env.get("DEV_LOGIN", "")),
         )
 
 

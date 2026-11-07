@@ -73,13 +73,14 @@ Edit `.env`:
 - `POSTGRES_PASSWORD`: any password. Use the same one inside `DATABASE_URL`.
 - `OAUTH_REDIRECT_URI`: leave the default, `http://localhost:5174/api/auth/callback`.
 - `COOKIE_SECURE`: keep `false` for `http://localhost`.
+- `DEV_LOGIN`: keep `false`. Only `./run-sandbox.sh` turns it on (see "Offline sandbox").
 
 `.env` is git-ignored. Never commit it.
 
 ### 3. Run
 
 ```sh
-docker compose up --build
+./run-docker.sh               # docker compose up --build, after checking .env and Docker
 ```
 
 This starts three services:
@@ -100,6 +101,17 @@ pnpm --dir web dev            # http://localhost:5174, /api -> http://localhost:
 Set `API_URL` to point the proxy somewhere else.
 
 All ports are published on `127.0.0.1` only. The database port is not published at all.
+
+### Scripts
+
+| Script | What it does | Needs |
+|---|---|---|
+| `./run-docker.sh` | Starts `db`, `api` and `web` with docker compose and Google sign-in. Extra arguments go to `docker compose up` (e.g. `-d`). | Docker, `.env` |
+| `./run-sandbox.sh` | Starts the app with no Docker and no network: embedded PostgreSQL with its data in `.sandbox/`, the API on `127.0.0.1:8001`, the web app on `http://localhost:5174`, and "Sign in as dev user" instead of Google. Ctrl-C stops everything; the data stays. | uv and pnpm caches (see "Offline sandbox") |
+| `./test-docker.sh` | Both test suites with coverage; the API tests get PostgreSQL from Docker (testcontainers). Extra arguments go to pytest. | Docker |
+| `./test-sandbox.sh` | Both test suites with coverage, offline, against a temporary embedded PostgreSQL. Extra arguments go to pytest. | uv and pnpm caches |
+
+The two `run-` scripts use the same ports, so run only one at a time.
 
 > **Warning:** your data lives in the `db-data` Docker volume.
 > `docker compose down -v` deletes that volume and **all your boards**. Use
@@ -198,7 +210,8 @@ uv run --directory api pytest -q --cov=app --cov-report=term-missing --cov-fail-
 pnpm --dir web exec vitest run --coverage
 ```
 
-These are the `setup_command` and `test_command` of `.agents/project.yaml`.
+These are the `setup_command` and `test_command` of `.agents/project.yaml`, and what
+`./test-docker.sh` runs (`./test-sandbox.sh` runs the same suites offline).
 
 ### API tests
 
@@ -226,17 +239,25 @@ SPA's client cannot silently drift.
 
 ### Offline sandbox (no Docker, no network)
 
-Both suites run without Docker and without network access, for example from a `git archive`
-copy:
+`./test-sandbox.sh` runs both suites, and `./run-sandbox.sh` runs the app, without Docker and
+without network access, for example from a `git archive` copy:
 
 - Python 3.12 must already be installed, and the dependencies downloaded beforehand: copy a
-  populated uv cache and run `uv sync --directory api --offline`, and run `pnpm fetch` while
-  online so that `pnpm --dir web install --frozen-lockfile --offline` works later.
-- The API tests then use the embedded `pgserver` (wheels for Linux x86_64 and macOS, Python
-  3.9 to 3.12). Without the Docker CLI, the compose tests check `docker-compose.yml` as text
-  instead of running `docker compose config`, and the `.env` git check is skipped outside a
-  git repository.
-- The app itself needs network for the Google login, so offline only the tests run.
+  populated uv cache (or run `uv sync --directory api` once while online), and run
+  `pnpm --dir web fetch` while online. The scripts then install with `UV_OFFLINE=1` and
+  `pnpm install --offline`.
+- PostgreSQL comes from the embedded `pgserver` (wheels for Linux x86_64 and macOS, Python
+  3.9 to 3.12): a temporary one for the tests (through `TEST_DATABASE_URL`, so Docker is not
+  used even if it is running), and a persistent one in `.sandbox/` for the app.
+  `api/scripts/sandbox_db.py` starts and stops it.
+- Without the Docker CLI, the compose tests check `docker-compose.yml` as text instead of
+  running `docker compose config`, and the `.env` git check is skipped outside a git
+  repository.
+- Google sign-in needs network, so `run-sandbox.sh` sets `DEV_LOGIN=true` and does not read
+  `.env`. The login page then also shows "Sign in as dev user", which signs in a fixed local
+  user (`dev@localhost`) through `GET /api/auth/dev-login`. That route only exists when
+  `DEV_LOGIN` is true, only answers requests from `127.0.0.1`, and is not in the OpenAPI
+  schema. Never enable it outside your own machine.
 
 ### Web tests
 
@@ -264,7 +285,7 @@ Lint with `pnpm --dir web lint` and format with `pnpm --dir web format`.
 ```
 api/
   app/
-    auth/         Google OAuth (BFF), sessions, /api/me, logout
+    auth/         Google OAuth (BFF), sessions, /api/me, logout, the sandbox dev login
     boards/       boards, the full board load and the archive view
     columns/      columns: placement, archive/restore, deletion with cards
     card_types/   card types and deletion with replacement
@@ -276,7 +297,8 @@ api/
     ordering.py   fractional sort keys
     main.py       app factory and the CSRF check
   migrations/     Alembic migrations
-  scripts/        export_openapi.py (the schema the SPA's client is generated from)
+  scripts/        export_openapi.py (the schema the SPA's client is generated from) and
+                  sandbox_db.py (embedded PostgreSQL for the sandbox scripts)
   tests/          pytest suite (fake Google, database chain, OpenAPI drift check)
 web/
   src/
@@ -298,6 +320,10 @@ web/
   Dockerfile      dev image (pnpm store in /pnpm-store, CI=true)
 docker-compose.yml  db, api and web services (127.0.0.1 only)
 .env.example        every setting, with placeholder values
+run-docker.sh       the app with docker compose
+run-sandbox.sh      the app offline, without Docker (embedded PostgreSQL, dev login)
+test-docker.sh      both test suites, PostgreSQL from Docker
+test-sandbox.sh     both test suites offline, embedded PostgreSQL
 ```
 
 ## Roadmap
