@@ -37,7 +37,7 @@ services:
       db:
         condition: service_healthy
 
-  # The SPA arrives in the next run; until then start only `db` and `api`.
+  # The SPA (Vite dev server). It proxies `/api` to `API_URL`, so the browser sees one origin.
   web:
     build: ./web
     environment:

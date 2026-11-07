@@ -2,7 +2,7 @@ name: kambi
 # Docker (OrbStack) should be running: backend tests start PostgreSQL with testcontainers.
 preflight:
   - docker info
-# The frontend is skipped until web/ exists (it comes in the next run).
+# web/ is installed and tested when present (Vitest, 80% line threshold in vite.config.ts).
 setup_command: uv sync --directory api && { [ ! -d web ] || pnpm --dir web install --frozen-lockfile; }
 test_command: >-
   uv run --directory api pytest -q --cov=app --cov-report=term-missing --cov-fail-under=80

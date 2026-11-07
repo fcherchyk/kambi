@@ -20,6 +20,14 @@ from tests.helpers import TABLES, Api, FakeGoogle, login
 API_DIR = Path(__file__).resolve().parent.parent
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--write-openapi",
+        action="store_true",
+        help="Rewrite web/openapi.json from the current API instead of checking it",
+    )
+
+
 def run_migrations(url: str) -> None:
     config = Config(str(API_DIR / "alembic.ini"))
     config.set_main_option("sqlalchemy.url", normalize_database_url(url).replace("%", "%%"))
