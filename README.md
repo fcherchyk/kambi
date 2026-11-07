@@ -130,7 +130,8 @@ Open `http://localhost:5174` and click **Sign in with Google**. Google redirects
 ### Keyboard shortcuts
 
 Press `?` (or the `?` button in the header) for this list. Shortcuts are off while you type
-in a field or while a dialog is open. Each one also has a button in the board toolbar.
+in a field or while a dialog is open. Each one also has a visible button: in the board
+toolbar, in the header (`?`), or in the dialog (`×`).
 
 | Key | Action |
 | --- | --- |
@@ -147,9 +148,10 @@ in a field or while a dialog is open. Each one also has a button in the board to
 
 ### API
 
-The API's interactive docs are at `http://127.0.0.1:8001/docs`. Mutations need the `X-CSRF: 1` header. Changes to an existing entity send the `version` the
-client last saw: in the body for `PATCH` and the `move`/`archive`/`restore` actions, and as
-`?version=` for `DELETE`.
+The API's interactive docs are at `http://127.0.0.1:8001/docs`. Mutations need the
+`X-CSRF: 1` header. Changes to an existing entity send the `version` the client last saw: in
+the body for `PATCH` and the `move`/`archive`/`restore` actions, and as `?version=` for
+`DELETE`.
 
 For example, creating a board, with a session cookie from the login flow:
 
@@ -264,14 +266,19 @@ api/
   tests/          pytest suite (fake Google, database chain, OpenAPI drift check)
 web/
   src/
+    main.tsx      entry point
+    App.tsx       routes, header, and the global "?" shortcut
+    session.tsx   the signed-in user: loads /api/me, handles logout and 401s
+    notices.tsx   the notice area (errors, reloads, validation messages)
     api/          client.ts (fetch wrapper, X-CSRF) and schema.ts (generated, do not edit)
-    board/        board view parts: columns, cards, dialogs, state transforms, useBoard
-    components/   Dialog, ConfirmDialog, InlineInput
-    keyboard/     the shortcut registry and the "?" help panel
+    board/        board view: columns, cards, dialogs, card types, state transforms, useBoard
+    components/   Dialog, InlineInput
+    keyboard/     the shortcut registry (shortcuts.ts) and the "?" help panel
     pages/        login, boards list, board, archive
-    test/         the in-memory fake API, render helpers and the test suites
+    test/         the in-memory fake API (fakeApi.ts), render helpers and the test suites
     ordering.ts   fractional sort keys (port of the API's)
     palette.ts    hex values for the 10 palette keys
+    validation.ts client-side name checks, using the API's length limits
   openapi.json    the API schema, versioned
   vite.config.ts  dev server (5174, /api proxy) and Vitest settings
   Dockerfile      dev image (pnpm store in /pnpm-store, CI=true)
@@ -287,6 +294,13 @@ docker-compose.yml  db, api and web services (127.0.0.1 only)
   generated from the OpenAPI schema, drag and drop, keyboard shortcuts with visible buttons,
   a `?` help panel, the card dialog and the archive view.
 - [ ] Redirect a failed Google callback to the SPA with an error instead of raw JSON.
+- [ ] Count a board's columns and cards in the delete confirmation without two extra requests.
+- [ ] Decide what happens to a card type used only by archived cards (the API returns `422`).
+- [ ] Decide whether a card in an archived column opens read-only or redirects to the archive.
+- [ ] Confirm against mapa-mental that Shift+↑/↓ reorders and F2 renames inline, and approve
+  the palette's hex values.
+- [ ] Production build, static hosting and CSP headers.
+- [ ] Real-time sync between tabs (today a change made elsewhere is only seen through `409`).
 - [ ] Make `test_command` fail when every database test is skipped.
 - [ ] Verify `docker compose up` end to end, including building the API image.
 - [ ] Slice 2: archive single cards, filter the board by card type, search card titles.

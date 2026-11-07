@@ -28,3 +28,6 @@
 - 22:20:23 · `uv run --directory api pytest -q --cov=app --cov-report=term-missing --cov-fail-under=80 && { [ ! -d web ] || pnpm --dir web exec vitest run --coverage; }` pasó (cobertura 99% · 99.57%)
 - 22:20:23 · paso review
 - 22:20:46 · review hecho por openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
+- 22:20:46 · paso docs
+- 22:21:45 · docs hecho por claude/claude-haiku-5-5
+- 22:21:45 · docs: ⚠ claude no pudo ejecutar 2 comandos: `cd /Users/negro/hworkspace/projects/kambi/web && find src -type f | sort && cat package.json && cat vite.config.ts && g…`, `cd /Users/negro/hworkspace/projects/kambi && cat > .agents/memory/wiki/index.md <<'EOF' # Project wiki Kambi is a Trell…`
