@@ -224,6 +224,20 @@ Lint and format with `uv run --directory api ruff check .` and
 `tests/test_openapi_export.py` fails if `web/openapi.json` no longer matches the API, so the
 SPA's client cannot silently drift.
 
+### Offline sandbox (no Docker, no network)
+
+Both suites run without Docker and without network access, for example from a `git archive`
+copy:
+
+- Python 3.12 must already be installed, and the dependencies downloaded beforehand: copy a
+  populated uv cache and run `uv sync --directory api --offline`, and run `pnpm fetch` while
+  online so that `pnpm --dir web install --frozen-lockfile --offline` works later.
+- The API tests then use the embedded `pgserver` (wheels for Linux x86_64 and macOS, Python
+  3.9 to 3.12). Without the Docker CLI, the compose tests check `docker-compose.yml` as text
+  instead of running `docker compose config`, and the `.env` git check is skipped outside a
+  git repository.
+- The app itself needs network for the Google login, so offline only the tests run.
+
 ### Web tests
 
 Vitest and Testing Library render the whole SPA against `web/src/test/fakeApi.ts`, a

@@ -89,9 +89,18 @@ def test_criterion_1_compose_reads_only_variables_listed_in_env_example() -> Non
     assert used <= set(env_example())
 
 
-def test_criterion_1_dot_env_is_ignored_by_git() -> None:
+def in_git_repo() -> bool:
     if shutil.which("git") is None:
-        pytest.skip("git is not installed")
+        return False
+    result = subprocess.run(
+        ["git", "rev-parse", "--is-inside-work-tree"], cwd=ROOT, capture_output=True, text=True
+    )
+    return result.returncode == 0 and result.stdout.strip() == "true"
+
+
+# Asks git which files it ignores; outside a repository (e.g. a `git archive` copy) it is skipped.
+@pytest.mark.skipif(not in_git_repo(), reason="not inside a git repository")
+def test_criterion_1_dot_env_is_ignored_by_git() -> None:
     result = subprocess.run(
         ["git", "check-ignore", "-q", ".env"], cwd=ROOT, capture_output=True, check=False
     )
