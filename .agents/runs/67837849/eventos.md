@@ -31,3 +31,7 @@
 - 22:20:46 · paso docs
 - 22:21:45 · docs hecho por claude/claude-haiku-5-5
 - 22:21:45 · docs: ⚠ claude no pudo ejecutar 2 comandos: `cd /Users/negro/hworkspace/projects/kambi/web && find src -type f | sort && cat package.json && cat vite.config.ts && g…`, `cd /Users/negro/hworkspace/projects/kambi && cat > .agents/memory/wiki/index.md <<'EOF' # Project wiki Kambi is a Trell…`
+- 22:21:45 · paso merge
+- 22:21:45 · gate enviado: Listo para mergear
+- 22:35:37 · 👤 aprobaste
+- 22:35:37 · merge de agent/67837849 en main
