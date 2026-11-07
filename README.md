@@ -226,10 +226,11 @@ If none of them works, only the database tests are skipped, with the reason. Goo
 replaced by a fake, so the tests need no network. The command fails if line coverage of
 `app` is below 80%.
 
-The suite covers each acceptance criterion of the slice 1 backend spec, with test names that
-state the criterion. In short: the compose and `.env.example` rules, the Google login and
-its state and nonce checks, `401` and `403` handling, board, column, card type and card
-rules, per-user isolation, optimistic versions, fractional ordering, and the database chain.
+The slice 1 acceptance criteria are listed in [`docs/S1_mvp.md`](docs/S1_mvp.md), from
+`S1_AC1` to `S1_AC20`, each with its tests. Every test names its criterion
+(`test_S1_AC5_…` in pytest, `"S1_AC5: …"` in Vitest), and
+`tests/test_acceptance_docs.py` fails if the document and the test names disagree or a
+criterion has no test.
 
 Lint and format with `uv run --directory api ruff check .` and
 `uv run --directory api ruff format .`.
@@ -267,12 +268,9 @@ hand-written in-memory fake of the API with the same rules (`401`, `403` without
 command fails if line coverage of `web/src` (tests and the generated client excluded) is
 below 80%.
 
-Each frontend acceptance criterion has tests named after it (`AC1: …` to `AC18: …`): the
-dev server and compose settings, the CSRF header, login and logout, boards, columns and the
-delete dialog, card types, cards and the card dialog, plain-text rendering, keyboard
-shortcuts and the help panel, optimistic rollback and `409` reloads, and a strict
-`tsc` check. Drag and drop has pointer-event smoke tests with a mocked layout, since jsdom
-has none.
+Each test names the slice 1 criterion it covers (`"S1_ACn: …"`, see
+[`docs/S1_mvp.md`](docs/S1_mvp.md)). Drag and drop has pointer-event smoke tests with a
+mocked layout, since jsdom has none.
 
 `src/api/schema.test.ts` regenerates the TypeScript types from `web/openapi.json` and fails
 if `src/api/schema.ts` differs. After changing the API, run `pnpm --dir web gen:api` (it
@@ -299,7 +297,7 @@ api/
   migrations/     Alembic migrations
   scripts/        export_openapi.py (the schema the SPA's client is generated from) and
                   sandbox_db.py (embedded PostgreSQL for the sandbox scripts)
-  tests/          pytest suite (fake Google, database chain, OpenAPI drift check)
+  tests/          pytest suite (fake Google, database chain, OpenAPI and docs drift checks)
 web/
   src/
     main.tsx      entry point
@@ -318,6 +316,7 @@ web/
   openapi.json    the API schema, versioned
   vite.config.ts  dev server (5174, /api proxy) and Vitest settings
   Dockerfile      dev image (pnpm store in /pnpm-store, CI=true)
+docs/S1_mvp.md      slice 1: what it delivers and its acceptance criteria with their tests
 docker-compose.yml  db, api and web services (127.0.0.1 only)
 .env.example        every setting, with placeholder values
 run-docker.sh       the app with docker compose

@@ -1,4 +1,4 @@
-"""Criteria 4 and 5: board creation with defaults, rename, list and delete."""
+"""S1_AC5: board creation with defaults, rename, list and delete."""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,7 +8,7 @@ from app.boards import service
 from tests.helpers import TABLES, Api, count_rows, snapshot
 
 
-def test_criterion_4_new_board_is_trimmed_and_gets_default_columns_and_type(api: Api) -> None:
+def test_S1_AC5_new_board_is_trimmed_and_gets_default_columns_and_type(api: Api) -> None:
     board = api.create_board("  Home ")
 
     assert board["name"] == "Home"
@@ -19,7 +19,7 @@ def test_criterion_4_new_board_is_trimmed_and_gets_default_columns_and_type(api:
     assert detail["cards"] == []
 
 
-def test_criterion_4_failed_seeding_leaves_no_rows(
+def test_S1_AC5_failed_seeding_leaves_no_rows(
     api: Api, engine: Engine, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def broken_seed(*args: object) -> None:
@@ -35,7 +35,7 @@ def test_criterion_4_failed_seeding_leaves_no_rows(
         assert count_rows(engine, table) == 0
 
 
-def test_criterion_5_rename_increments_version(api: Api) -> None:
+def test_S1_AC5_rename_increments_version(api: Api) -> None:
     board = api.create_board("Home")
 
     response = api.patch(f"/api/boards/{board['id']}", {"name": " Work ", "version": 1})
@@ -47,7 +47,7 @@ def test_criterion_5_rename_increments_version(api: Api) -> None:
 
 
 @pytest.mark.parametrize("name", ["", "   ", "x" * 101])
-def test_criterion_5_invalid_board_names_return_422(api: Api, name: str) -> None:
+def test_S1_AC5_invalid_board_names_return_422(api: Api, name: str) -> None:
     board = api.create_board("Home")
 
     assert api.post("/api/boards", {"name": name}).status_code == 422
@@ -55,11 +55,11 @@ def test_criterion_5_invalid_board_names_return_422(api: Api, name: str) -> None
     assert response.status_code == 422
 
 
-def test_criterion_5_name_of_100_chars_after_trim_is_valid(api: Api) -> None:
+def test_S1_AC5_name_of_100_chars_after_trim_is_valid(api: Api) -> None:
     assert api.create_board("  " + "x" * 100 + "  ")["name"] == "x" * 100
 
 
-def test_criterion_5_delete_removes_every_row_of_the_board(api: Api, engine: Engine) -> None:
+def test_S1_AC5_delete_removes_every_row_of_the_board(api: Api, engine: Engine) -> None:
     keep = api.create_board("Keep")
     board = api.create_board("Doomed")
     detail = api.board(board["id"])
@@ -84,7 +84,7 @@ def test_criterion_5_delete_removes_every_row_of_the_board(api: Api, engine: Eng
     assert api.board(keep["id"])["name"] == "Keep"
 
 
-def test_criterion_5_list_returns_only_the_callers_boards(api: Api, other_api: Api) -> None:
+def test_S1_AC5_list_returns_only_the_callers_boards(api: Api, other_api: Api) -> None:
     mine = api.create_board("Mine")
     other_api.create_board("Theirs")
 
@@ -94,13 +94,13 @@ def test_criterion_5_list_returns_only_the_callers_boards(api: Api, other_api: A
     assert [board["id"] for board in response.json()] == [mine["id"]]
 
 
-def test_archive_of_a_board_without_archived_columns_is_empty(api: Api) -> None:
+def test_S1_AC5_archive_of_a_board_without_archived_columns_is_empty(api: Api) -> None:
     board = api.create_board("Home")
 
     assert api.archive(board["id"]) == {"board_id": board["id"], "columns": []}
 
 
-def test_openapi_schema_is_exposed(client: TestClient) -> None:
+def test_S1_AC19_openapi_schema_is_exposed(client: TestClient) -> None:
     response = client.get("/openapi.json")
 
     assert response.status_code == 200

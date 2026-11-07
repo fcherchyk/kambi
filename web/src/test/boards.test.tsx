@@ -10,7 +10,7 @@ import {
 } from "./render";
 
 describe("boards list", () => {
-  it("AC4: creating a board lists it, and opening it shows the three default columns", async () => {
+  it("S1_AC5: creating a board lists it, and opening it shows the three default columns", async () => {
     const { user, fake } = renderApp("/");
     await screen.findByText("No boards yet. Create one above.");
     await user.type(
@@ -24,7 +24,7 @@ describe("boards list", () => {
     expect(fake.mutations()[0]?.body).toEqual({ name: "Home" });
   });
 
-  it("AC4: renaming a board shows the new name", async () => {
+  it("S1_AC5: renaming a board shows the new name", async () => {
     const fake = new FakeApi();
     fake.addBoard("Home");
     const { user } = renderApp("/", fake);
@@ -44,7 +44,7 @@ describe("boards list", () => {
     });
   });
 
-  it("AC4: creating a board with exactly 100 characters succeeds", async () => {
+  it("S1_AC5: creating a board with exactly 100 characters succeeds", async () => {
     const { user, fake } = renderApp("/");
     await screen.findByText("No boards yet. Create one above.");
     const name = "B".repeat(100);
@@ -58,7 +58,7 @@ describe("boards list", () => {
     ["empty", "   "],
     ["too long", "x".repeat(101)],
   ])(
-    "AC4: a %s board name shows a validation message and sends nothing",
+    "S1_AC5: a %s board name shows a validation message and sends nothing",
     async (_, name) => {
       const { user, fake } = renderApp("/");
       await screen.findByText("No boards yet. Create one above.");
@@ -74,7 +74,7 @@ describe("boards list", () => {
     },
   );
 
-  it("AC4: an invalid rename shows a validation message and sends nothing", async () => {
+  it("S1_AC5: an invalid rename shows a validation message and sends nothing", async () => {
     const fake = new FakeApi();
     fake.addBoard("Home");
     const { user } = renderApp("/", fake);
@@ -96,7 +96,7 @@ describe("boards list", () => {
     expect(fake.mutations()).toEqual([]);
   });
 
-  it("AC4: pressing Escape on delete confirmation cancels and keeps the board", async () => {
+  it("S1_AC5: pressing Escape on delete confirmation cancels and keeps the board", async () => {
     const fake = new FakeApi();
     fake.addBoard("Home");
     const { user } = renderApp("/", fake);
@@ -110,7 +110,7 @@ describe("boards list", () => {
     expect(fake.mutations()).toEqual([]);
   });
 
-  it("AC4: deleting a board confirms with its column and card counts", async () => {
+  it("S1_AC5: deleting a board confirms with its column and card counts", async () => {
     const fake = new FakeApi();
     const board = fake.addBoard("Home");
     const todo = fake.column(board.id, "To Do");
@@ -147,7 +147,7 @@ describe("boards list", () => {
     expect(request?.query.get("version")).toBe("1");
   });
 
-  it("AC4, AC17: restores the list and shows an error when the API rejects a change", async () => {
+  it("S1_AC5, S1_AC7: restores the list and shows an error when the API rejects a change", async () => {
     const fake = new FakeApi();
     fake.addBoard("Home");
     fake.failNext("PATCH", /\/api\/boards\//, 500);
@@ -165,7 +165,7 @@ describe("boards list", () => {
     ).toBeInTheDocument();
   });
 
-  it("AC4, AC17: reloads the list with a notice on a 409", async () => {
+  it("S1_AC5, S1_AC7: reloads the list with a notice on a 409", async () => {
     const fake = new FakeApi();
     const board = fake.addBoard("Home");
     const { user } = renderApp("/", fake);

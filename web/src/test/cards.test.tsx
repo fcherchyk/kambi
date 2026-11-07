@@ -13,7 +13,7 @@ import {
 } from "./render";
 
 describe("cards", () => {
-  it("AC11: Enter creates a trimmed card at the end with the first type, and keeps an empty input focused", async () => {
+  it("S1_AC15: Enter creates a trimmed card at the end with the first type, and keeps an empty input focused", async () => {
     const { user, fake, board } = await renderBoard((fake, boardId) => {
       fake.addCard(fake.column(boardId, "To Do").id, "Existing");
       fake.addType(boardId, "Bug", "red");
@@ -34,7 +34,7 @@ describe("cards", () => {
     expect(fake.card("Buy milk").type_id).toBe(fake.typesOf(board.id)[0]?.id);
   });
 
-  it("AC11: Escape closes the input and an empty title sends nothing", async () => {
+  it("S1_AC15: Escape closes the input and an empty title sends nothing", async () => {
     const { user, fake } = await renderBoard();
     const todo = within(screen.getByRole("region", { name: "To Do" }));
     await user.click(todo.getByRole("button", { name: "+ Add card" }));
@@ -50,7 +50,7 @@ describe("cards", () => {
     expect(fake.mutations()).toEqual([]);
   });
 
-  it("AC11: a card title longer than 200 characters shows an error and sends nothing", async () => {
+  it("S1_AC15: a card title longer than 200 characters shows an error and sends nothing", async () => {
     const { user, fake } = await renderBoard();
     const todo = within(screen.getByRole("region", { name: "To Do" }));
     await user.click(todo.getByRole("button", { name: "+ Add card" }));
@@ -65,7 +65,7 @@ describe("cards", () => {
     expect(fake.mutations()).toEqual([]);
   });
 
-  it("AC12: the card dialog opens directly from the URL and saves edits with one PATCH", async () => {
+  it("S1_AC15: the card dialog opens directly from the URL and saves edits with one PATCH", async () => {
     let cardId = "";
     const { user, fake, board } = await renderBoard((fake, boardId) => {
       fake.addType(boardId, "Bug", "red");
@@ -119,7 +119,7 @@ describe("cards", () => {
     });
   });
 
-  it("AC12: rendering /b/:boardId/c/:cardId directly shows the dialog over the board", async () => {
+  it("S1_AC15: rendering /b/:boardId/c/:cardId directly shows the dialog over the board", async () => {
     let cardId = "";
     const fakeSeed = (fake: import("./fakeApi").FakeApi, boardId: string) => {
       cardId = fake.addCard(fake.column(boardId, "To Do").id, "Deep link").id;
@@ -148,13 +148,13 @@ describe("cards", () => {
     expect(fake.mutations()).toEqual([]);
   });
 
-  it("AC12: an unknown card id shows Card not found and returns to the board", async () => {
+  it("S1_AC15: an unknown card id shows Card not found and returns to the board", async () => {
     const { board } = await renderBoard(undefined, "/c/nope");
     expect(await screen.findByText("Card not found.")).toBeInTheDocument();
     await waitFor(() => expect(currentPath()).toBe(`/b/${board.id}`));
   });
 
-  it("AC12: an empty or invalid title, or description > 10000 chars in the dialog shows an error and sends nothing", async () => {
+  it("S1_AC15: an empty or invalid title, or description > 10000 chars in the dialog shows an error and sends nothing", async () => {
     const { user, fake } = await renderBoard((fake, boardId) => {
       fake.addCard(fake.column(boardId, "To Do").id, "Title");
     });
@@ -186,7 +186,7 @@ describe("cards", () => {
     expect(fake.mutations()).toEqual([]);
   });
 
-  it("AC14: Move to… places the selected card after a given card with one move request", async () => {
+  it("S1_AC16: Move to… places the selected card after a given card with one move request", async () => {
     const { user, fake, board } = await renderBoard((fake, boardId) => {
       const todo = fake.column(boardId, "To Do");
       fake.addCard(todo.id, "A");
@@ -219,7 +219,7 @@ describe("cards", () => {
     });
   });
 
-  it("AC14: Move to… from the card dialog can put a card at the top", async () => {
+  it("S1_AC16: Move to… from the card dialog can put a card at the top", async () => {
     const { user, fake } = await renderBoard((fake, boardId) => {
       const todo = fake.column(boardId, "To Do");
       fake.addCard(todo.id, "A");
@@ -241,7 +241,7 @@ describe("cards", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("AC14: Shift+→ moves the selected card to the end of the next column", async () => {
+  it("S1_AC16: Shift+→ moves the selected card to the end of the next column", async () => {
     const { user, fake, board } = await renderBoard((fake, boardId) => {
       fake.addCard(fake.column(boardId, "To Do").id, "A");
       fake.addCard(fake.column(boardId, "In Progress").id, "P");
@@ -266,7 +266,7 @@ describe("cards", () => {
     );
   });
 
-  it("AC14: Shift+↑ and Shift+↓ swap the card with its neighbor", async () => {
+  it("S1_AC16: Shift+↑ and Shift+↓ swap the card with its neighbor", async () => {
     const { user, fake } = await renderBoard((fake, boardId) => {
       const todo = fake.column(boardId, "To Do");
       for (const title of ["A", "B", "C"]) fake.addCard(todo.id, title);
@@ -292,7 +292,7 @@ describe("cards", () => {
     expect(fake.mutations()).toHaveLength(3);
   });
 
-  it("AC14: Shift+Arrow at boundaries (first/last column, bottom card) sends no requests", async () => {
+  it("S1_AC16: Shift+Arrow at boundaries (first/last column, bottom card) sends no requests", async () => {
     const { user, fake } = await renderBoard((fake, boardId) => {
       fake.addCard(fake.column(boardId, "To Do").id, "Top");
       fake.addCard(fake.column(boardId, "To Do").id, "Bottom");
@@ -315,7 +315,7 @@ describe("cards", () => {
   });
 
   it.each(["Delete key", "delete button"])(
-    "AC15: the %s asks for confirmation before deleting",
+    "S1_AC15: the %s asks for confirmation before deleting",
     async (how) => {
       const { user, fake } = await renderBoard((fake, boardId) => {
         const todo = fake.column(boardId, "To Do");
@@ -353,7 +353,7 @@ describe("cards", () => {
     },
   );
 
-  it("AC15: a card can be deleted from its dialog", async () => {
+  it("S1_AC15: a card can be deleted from its dialog", async () => {
     const { user, fake, board } = await renderBoard((fake, boardId) => {
       fake.addCard(fake.column(boardId, "To Do").id, "A");
     });
@@ -369,7 +369,7 @@ describe("cards", () => {
     expect(screen.queryByText("Card not found.")).not.toBeInTheDocument();
   });
 
-  it("AC15: pressing Escape on the delete confirmation cancels and keeps the card", async () => {
+  it("S1_AC15: pressing Escape on the delete confirmation cancels and keeps the card", async () => {
     const { user, fake } = await renderBoard((fake, boardId) => {
       fake.addCard(fake.column(boardId, "To Do").id, "A");
     });

@@ -9,7 +9,7 @@ from scripts.export_openapi import render_schema
 SCHEMA_FILE = Path(__file__).resolve().parents[2] / "web" / "openapi.json"
 
 
-def test_web_openapi_schema_matches_the_api(request: pytest.FixtureRequest) -> None:
+def test_S1_AC19_web_openapi_schema_matches_the_api(request: pytest.FixtureRequest) -> None:
     current = render_schema()
     if request.config.getoption("--write-openapi"):
         SCHEMA_FILE.write_text(current)

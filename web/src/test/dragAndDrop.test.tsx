@@ -79,7 +79,7 @@ describe("drag and drop", () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("AC14: dragging a card to another column sends the same move request", async () => {
+  it("S1_AC16: dragging a card to another column sends the same move request", async () => {
     const { fake, board } = await renderBoard((fake, boardId) => {
       fake.addCard(fake.column(boardId, "To Do").id, "A");
       fake.addCard(fake.column(boardId, "To Do").id, "B");
@@ -104,7 +104,7 @@ describe("drag and drop", () => {
     expect(cardTitles("In Progress")).toEqual(["A"]);
   });
 
-  it("AC14: dropping a card on a card below it in the same column places it after that card", async () => {
+  it("S1_AC16: dropping a card on a card below it in the same column places it after that card", async () => {
     const { fake } = await renderBoard((fake, boardId) => {
       for (const title of ["A", "B", "C"])
         fake.addCard(fake.column(boardId, "To Do").id, title);
@@ -118,7 +118,7 @@ describe("drag and drop", () => {
     expect(cardTitles("To Do")).toEqual(["B", "A", "C"]);
   });
 
-  it("AC5: dragging a column sends the same move request as ◀", async () => {
+  it("S1_AC9: dragging a column sends the same move request as ◀", async () => {
     const { fake, board } = await renderBoard();
     const handle = screen.getByLabelText("Drag column Done");
     const target = screen.getByRole("region", { name: "To Do" });

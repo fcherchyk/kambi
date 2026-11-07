@@ -22,7 +22,7 @@ function seedDoing(fake: FakeApi, boardId: string) {
 }
 
 describe("archive", () => {
-  it("AC8: archiving Doing moves it with its 2 cards to the read-only archive view", async () => {
+  it("S1_AC10: archiving Doing moves it with its 2 cards to the read-only archive view", async () => {
     const { user, fake, board } = await renderBoard(seedDoing);
     expect(columnNames()).toEqual(["To Do", "In Progress", "Doing", "Done"]);
     await user.click(
@@ -46,7 +46,7 @@ describe("archive", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("AC8: Restore brings the column back to its original position with both cards", async () => {
+  it("S1_AC10: Restore brings the column back to its original position with both cards", async () => {
     const fake = new FakeApi();
     const board = fake.addBoard("Home");
     seedDoing(fake, board.id);
@@ -63,7 +63,7 @@ describe("archive", () => {
     expect(cardTitles("Doing")).toEqual(["first", "second"]);
   });
 
-  it("AC8: Delete in the archive view uses the delete-column dialog", async () => {
+  it("S1_AC10: Delete in the archive view uses the delete-column dialog", async () => {
     const fake = new FakeApi();
     const board = fake.addBoard("Home");
     seedDoing(fake, board.id);
@@ -108,7 +108,7 @@ describe("archive", () => {
     expect(await screen.findByText("No archived columns.")).toBeInTheDocument();
   });
 
-  it("AC8: Delete the column and its cards works from the archive, and a 409 reloads it", async () => {
+  it("S1_AC10: Delete the column and its cards works from the archive, and a 409 reloads it", async () => {
     const fake = new FakeApi();
     const board = fake.addBoard("Home");
     seedDoing(fake, board.id);
@@ -137,7 +137,7 @@ describe("archive", () => {
     await waitFor(() => expect(fake.cards).toEqual([]));
   });
 
-  it("AC8: canceling the delete dialog in the archive view leaves the column and sends nothing", async () => {
+  it("S1_AC10: canceling the delete dialog in the archive view leaves the column and sends nothing", async () => {
     const fake = new FakeApi();
     const board = fake.addBoard("Home");
     seedDoing(fake, board.id);
@@ -154,7 +154,7 @@ describe("archive", () => {
     expect(fake.mutations()).toEqual([]);
   });
 
-  it("AC8, AC17: rolls back and shows an error when restoring fails", async () => {
+  it("S1_AC10, S1_AC7: rolls back and shows an error when restoring fails", async () => {
     const fake = new FakeApi();
     const board = fake.addBoard("Home");
     seedDoing(fake, board.id);
@@ -170,7 +170,7 @@ describe("archive", () => {
     expect(screen.getByRole("region", { name: "Doing" })).toBeInTheDocument();
   });
 
-  it("AC8: shows Board not found for an unknown board's archive", async () => {
+  it("S1_AC10: shows Board not found for an unknown board's archive", async () => {
     renderApp("/b/missing/archive");
     expect(await screen.findByText("Board not found.")).toBeInTheDocument();
   });

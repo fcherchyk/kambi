@@ -11,7 +11,7 @@ import {
 } from "./render";
 
 describe("columns", () => {
-  it("AC5: a column added after To Do shows in second position", async () => {
+  it("S1_AC9: a column added after To Do shows in second position", async () => {
     const { user, fake, board } = await renderBoard();
     await user.click(
       screen.getByRole("button", { name: "Add column after To Do" }),
@@ -31,7 +31,7 @@ describe("columns", () => {
     expect(columnNames()).toEqual(["To Do", "Review", "In Progress", "Done"]);
   });
 
-  it("AC5: a column added at the end is appended", async () => {
+  it("S1_AC9: a column added at the end is appended", async () => {
     const { user, fake, board } = await renderBoard();
     await user.click(screen.getByRole("button", { name: "+ Add column" }));
     await user.type(
@@ -45,7 +45,7 @@ describe("columns", () => {
     expect(columnNames().at(-1)).toBe("Later");
   });
 
-  it("AC5: a column added with exactly 100 characters succeeds", async () => {
+  it("S1_AC9: a column added with exactly 100 characters succeeds", async () => {
     const { user, fake, board } = await renderBoard();
     const name = "C".repeat(100);
     await user.click(screen.getByRole("button", { name: "+ Add column" }));
@@ -60,7 +60,7 @@ describe("columns", () => {
     expect(columnNames().at(-1)).toBe(name);
   });
 
-  it("AC5: renaming a column shows the new name", async () => {
+  it("S1_AC9: renaming a column shows the new name", async () => {
     const { user, fake, board } = await renderBoard();
     await user.click(
       screen.getByRole("button", { name: "Rename column Done" }),
@@ -74,7 +74,7 @@ describe("columns", () => {
     await waitFor(() => expect(fake.column(board.id, "Shipped")).toBeDefined());
   });
 
-  it("AC5: ◀ moves Done before In Progress with one move request", async () => {
+  it("S1_AC9: ◀ moves Done before In Progress with one move request", async () => {
     const { user, fake, board } = await renderBoard();
     const done = fake.column(board.id, "Done");
     await user.click(
@@ -90,7 +90,7 @@ describe("columns", () => {
     });
   });
 
-  it("AC5: ▶ moves a column right, and the ends are disabled", async () => {
+  it("S1_AC9: ▶ moves a column right, and the ends are disabled", async () => {
     const { user, fake, board } = await renderBoard();
     expect(
       screen.getByRole("button", { name: "Move column To Do left" }),
@@ -117,7 +117,7 @@ describe("columns", () => {
     expect(columnNames()).toEqual(["To Do", "In Progress", "Done"]);
   });
 
-  it("AC6: the delete dialog offers move, delete and cancel, with focus on Cancel", async () => {
+  it("S1_AC11: the delete dialog offers move, delete and cancel, with focus on Cancel", async () => {
     const { user } = await renderBoard((fake, boardId) => {
       const todo = fake.column(boardId, "To Do");
       fake.addCard(todo.id, "one");
@@ -138,7 +138,7 @@ describe("columns", () => {
     expect(within(box).getByRole("button", { name: "Cancel" })).toHaveFocus();
   });
 
-  it("AC6: Move 2 cards to Done sends cards=move and puts them at the end of Done in order", async () => {
+  it("S1_AC11: Move 2 cards to Done sends cards=move and puts them at the end of Done in order", async () => {
     const { user, fake, board } = await renderBoard((fake, boardId) => {
       const todo = fake.column(boardId, "To Do");
       fake.addCard(todo.id, "one");
@@ -175,7 +175,7 @@ describe("columns", () => {
     expect(columnNames()).toEqual(["In Progress", "Done"]);
   });
 
-  it("AC6: Delete the column and its 2 cards sends cards=delete and removes them", async () => {
+  it("S1_AC11: Delete the column and its 2 cards sends cards=delete and removes them", async () => {
     const { user, fake, board } = await renderBoard((fake, boardId) => {
       const todo = fake.column(boardId, "To Do");
       fake.addCard(todo.id, "one");
@@ -197,7 +197,7 @@ describe("columns", () => {
   });
 
   it.each(["Cancel", "Escape"])(
-    "AC6: %s closes the dialog and sends nothing",
+    "S1_AC11: %s closes the dialog and sends nothing",
     async (how) => {
       const { user, fake } = await renderBoard((fake, boardId) => {
         fake.addCard(fake.column(boardId, "To Do").id, "one");
@@ -216,7 +216,7 @@ describe("columns", () => {
     },
   );
 
-  it("AC6: an empty column is deleted without a dialog", async () => {
+  it("S1_AC11: an empty column is deleted without a dialog", async () => {
     const { user, fake, board } = await renderBoard();
     const done = fake.column(board.id, "Done");
     await user.click(
@@ -230,7 +230,7 @@ describe("columns", () => {
     expect(lastMutation(fake)?.query.get("cards")).toBeNull();
   });
 
-  it("AC7: the last active column cannot be archived or deleted", async () => {
+  it("S1_AC12: the last active column cannot be archived or deleted", async () => {
     const { fake } = await renderBoard((fake, boardId) => {
       fake.columns = fake.columns.filter(
         (c) => c.board_id !== boardId || c.name === "To Do",
@@ -245,7 +245,7 @@ describe("columns", () => {
     expect(fake.mutations()).toEqual([]);
   });
 
-  it("AC6: the delete dialog for a column with 1 card shows singular card text and excludes the column itself from targets", async () => {
+  it("S1_AC11: the delete dialog for a column with 1 card shows singular card text and excludes the column itself from targets", async () => {
     const { user, fake } = await renderBoard((fake, boardId) => {
       const todo = fake.column(boardId, "To Do");
       fake.addCard(todo.id, "lone card");
@@ -274,7 +274,7 @@ describe("columns", () => {
     expect(fake.mutations()).toEqual([]);
   });
 
-  it("AC7: the last active column cannot be archived or deleted even when archived columns exist", async () => {
+  it("S1_AC12: the last active column cannot be archived or deleted even when archived columns exist", async () => {
     const { fake } = await renderBoard((fake, boardId) => {
       fake.columns = fake.columns.filter(
         (c) => c.board_id !== boardId || c.name === "To Do",
@@ -291,13 +291,13 @@ describe("columns", () => {
     expect(fake.mutations()).toEqual([]);
   });
 
-  it("AC5: shows Board not found for an unknown board", async () => {
+  it("S1_AC9: shows Board not found for an unknown board", async () => {
     const { renderApp } = await import("./render");
     renderApp("/b/missing");
     expect(await screen.findByText("Board not found.")).toBeInTheDocument();
   });
 
-  it("AC5: rejects an invalid column name (empty or >100 chars) without sending anything", async () => {
+  it("S1_AC9: rejects an invalid column name (empty or >100 chars) without sending anything", async () => {
     const { user, fake } = await renderBoard();
     await user.click(
       screen.getByRole("button", { name: "Rename column Done" }),

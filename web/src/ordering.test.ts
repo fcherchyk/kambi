@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DIGITS, keyAfterSibling, keyBetween, keysAfter } from "./ordering";
 
 describe("fractional sort keys", () => {
-  it("generates keys strictly between their neighbors", () => {
+  it("S1_AC8: generates keys strictly between their neighbors", () => {
     const cases: [string | null, string | null][] = [
       [null, null],
       [null, "V"],
@@ -20,15 +20,15 @@ describe("fractional sort keys", () => {
     }
   });
 
-  it("matches the API's keys for appends", () => {
+  it("S1_AC8: matches the API's keys for appends", () => {
     expect(keysAfter(null, 3)).toEqual(["V", "k", "s"]);
   });
 
-  it("rejects neighbors in the wrong order", () => {
+  it("S1_AC8: rejects neighbors in the wrong order", () => {
     expect(() => keyBetween("b", "a")).toThrow();
   });
 
-  it("places an item after a sibling, first, or last when the sibling is unknown", () => {
+  it("S1_AC8: places an item after a sibling, first, or last when the sibling is unknown", () => {
     const items = [
       { id: "a", sort_key: "V" },
       { id: "b", sort_key: "k" },

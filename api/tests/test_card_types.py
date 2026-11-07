@@ -1,4 +1,4 @@
-"""Criteria 13 and 14: card types and their deletion."""
+"""S1_AC13 and S1_AC14: card types and their deletion."""
 
 import pytest
 from sqlalchemy import Engine
@@ -12,7 +12,7 @@ def board(api: Api) -> dict:
     return api.board(api.create_board("Home")["id"])
 
 
-def test_criterion_13_new_type_is_listed_after_task(api: Api, board: dict) -> None:
+def test_S1_AC13_new_type_is_listed_after_task(api: Api, board: dict) -> None:
     created = api.add_type(board["id"], " Bug ", "red")
 
     assert created["name"] == "Bug"
@@ -20,7 +20,7 @@ def test_criterion_13_new_type_is_listed_after_task(api: Api, board: dict) -> No
     assert [(t["name"], t["color"]) for t in types] == [("Task", "yellow"), ("Bug", "red")]
 
 
-def test_criterion_13_rename_and_recolor_are_reflected_in_the_board(api: Api, board: dict) -> None:
+def test_S1_AC13_rename_and_recolor_are_reflected_in_the_board(api: Api, board: dict) -> None:
     bug = api.add_type(board["id"], "Bug", "red")
 
     renamed = api.patch(f"/api/card-types/{bug['id']}", {"name": "Defect", "version": 1})
@@ -33,7 +33,7 @@ def test_criterion_13_rename_and_recolor_are_reflected_in_the_board(api: Api, bo
     assert (types[1]["name"], types[1]["color"]) == ("Defect", "purple")
 
 
-def test_criterion_13_renaming_a_type_to_its_own_name_in_another_case_is_allowed(
+def test_S1_AC13_renaming_a_type_to_its_own_name_in_another_case_is_allowed(
     api: Api, board: dict
 ) -> None:
     task = board["card_types"][0]
@@ -44,12 +44,12 @@ def test_criterion_13_renaming_a_type_to_its_own_name_in_another_case_is_allowed
     assert response.json()["name"] == "TASK"
 
 
-def test_criterion_13_every_palette_color_is_accepted(api: Api, board: dict) -> None:
+def test_S1_AC13_every_palette_color_is_accepted(api: Api, board: dict) -> None:
     for index, color in enumerate(PALETTE):
         assert api.add_type(board["id"], f"Type {index}", color)["color"] == color
 
 
-def test_criterion_13_name_of_50_chars_is_accepted(api: Api, board: dict) -> None:
+def test_S1_AC13_name_of_50_chars_is_accepted(api: Api, board: dict) -> None:
     created = api.add_type(board["id"], "x" * 50)
     assert created["name"] == "x" * 50
 
@@ -65,7 +65,7 @@ def test_criterion_13_name_of_50_chars_is_accepted(api: Api, board: dict) -> Non
         {"name": " TASK ", "color": "red"},
     ],
 )
-def test_criterion_13_invalid_types_return_422(
+def test_S1_AC13_invalid_types_return_422(
     api: Api, board: dict, body: dict, engine: Engine
 ) -> None:
     before = snapshot(engine)
@@ -78,7 +78,7 @@ def test_criterion_13_invalid_types_return_422(
     "body",
     [{"name": "task"}, {"name": ""}, {"name": "x" * 51}, {"color": "#000"}],
 )
-def test_criterion_13_invalid_type_updates_return_422(api: Api, board: dict, body: dict) -> None:
+def test_S1_AC13_invalid_type_updates_return_422(api: Api, board: dict, body: dict) -> None:
     bug = api.add_type(board["id"], "Bug")
 
     response = api.patch(f"/api/card-types/{bug['id']}", {**body, "version": 1})
@@ -102,9 +102,7 @@ def bug_setup(api: Api, board: dict) -> dict:
     }
 
 
-def test_criterion_14_delete_with_replacement_reassigns_every_card(
-    api: Api, bug_setup: dict
-) -> None:
+def test_S1_AC14_delete_with_replacement_reassigns_every_card(api: Api, bug_setup: dict) -> None:
     board_id = bug_setup["board"]["id"]
     bug, task = bug_setup["bug"], bug_setup["task"]
 
@@ -121,7 +119,7 @@ def test_criterion_14_delete_with_replacement_reassigns_every_card(
         assert card["version"] == 2
 
 
-def test_criterion_14_invalid_type_deletions_return_422_and_change_nothing(
+def test_S1_AC14_invalid_type_deletions_return_422_and_change_nothing(
     api: Api, bug_setup: dict, other_api: Api, engine: Engine
 ) -> None:
     bug = bug_setup["bug"]
@@ -138,9 +136,7 @@ def test_criterion_14_invalid_type_deletions_return_422_and_change_nothing(
     assert snapshot(engine) == before
 
 
-def test_criterion_14_the_last_type_cannot_be_deleted(
-    api: Api, board: dict, engine: Engine
-) -> None:
+def test_S1_AC14_the_last_type_cannot_be_deleted(api: Api, board: dict, engine: Engine) -> None:
     task = board["card_types"][0]
     before = snapshot(engine)
 
@@ -150,7 +146,7 @@ def test_criterion_14_the_last_type_cannot_be_deleted(
     assert snapshot(engine) == before
 
 
-def test_criterion_14_last_type_cannot_be_deleted_even_with_replace_with(
+def test_S1_AC14_last_type_cannot_be_deleted_even_with_replace_with(
     api: Api, board: dict, engine: Engine
 ) -> None:
     task = board["card_types"][0]
@@ -165,7 +161,7 @@ def test_criterion_14_last_type_cannot_be_deleted_even_with_replace_with(
     assert snapshot(engine) == before
 
 
-def test_criterion_14_unused_type_is_deleted_without_parameters(api: Api, board: dict) -> None:
+def test_S1_AC14_unused_type_is_deleted_without_parameters(api: Api, board: dict) -> None:
     bug = api.add_type(board["id"], "Bug")
 
     assert api.delete(f"/api/card-types/{bug['id']}", params={"version": 1}).status_code == 204

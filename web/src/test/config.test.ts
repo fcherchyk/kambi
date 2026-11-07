@@ -16,7 +16,7 @@ function composeService(name: string): string {
 }
 
 describe("dev server and compose", () => {
-  it("AC1: Vite serves on 5174 with strictPort and proxies /api to localhost:8001 by default", () => {
+  it("S1_AC1: Vite serves on 5174 with strictPort and proxies /api to localhost:8001 by default", () => {
     const options = serverOptions(undefined);
     expect(options.port).toBe(5174);
     expect(options.strictPort).toBe(true);
@@ -26,13 +26,13 @@ describe("dev server and compose", () => {
     });
   });
 
-  it("AC1: API_URL=http://api:8001 sends the proxy to the api service", () => {
+  it("S1_AC1: API_URL=http://api:8001 sends the proxy to the api service", () => {
     expect(serverOptions("http://api:8001").proxy?.["/api"]).toMatchObject({
       target: "http://api:8001",
     });
   });
 
-  it("AC1: the web service builds ./web, publishes 127.0.0.1:5174 and keeps node_modules in a volume", () => {
+  it("S1_AC1: the web service builds ./web, publishes 127.0.0.1:5174 and keeps node_modules in a volume", () => {
     const web = composeService("web");
     expect(web).toContain("build: ./web");
     expect(web).toContain('"127.0.0.1:5174:5174"');
@@ -40,7 +40,7 @@ describe("dev server and compose", () => {
     expect(web).toContain("API_URL: http://api:8001");
   });
 
-  it("AC1: the Dockerfile uses a fixed pnpm store and CI=true", () => {
+  it("S1_AC1: the Dockerfile uses a fixed pnpm store and CI=true", () => {
     const dockerfile = read("../../Dockerfile");
     expect(dockerfile).toMatch(/npm_config_store_dir=\/pnpm-store/);
     expect(dockerfile).toMatch(/CI=true/);

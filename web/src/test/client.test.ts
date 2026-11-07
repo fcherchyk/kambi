@@ -12,7 +12,7 @@ function setup() {
 }
 
 describe("API client", () => {
-  it("AC2: every mutation of each resource carries X-CSRF: 1, and GETs do not need it", async () => {
+  it("S1_AC3: every mutation of each resource carries X-CSRF: 1, and GETs do not need it", async () => {
     const { fake, board, todo, doing, task } = setup();
     const renamed = await api.renameBoard(board, "House");
     const column = await api.renameColumn(todo, "Backlog");
@@ -50,7 +50,7 @@ describe("API client", () => {
     for (const get of gets) expect(get.headers["X-CSRF"]).toBeUndefined();
   });
 
-  it("AC2: column actions send the version in the body or the query", async () => {
+  it("S1_AC3: column actions send the version in the body or the query", async () => {
     const { fake, board, todo, doing } = setup();
     const created = await api.createColumn(board.id, "First", null);
     await api.moveColumn(created, todo.id);
@@ -65,14 +65,14 @@ describe("API client", () => {
     expect(fake.mutations().at(-1)?.query.get("version")).toBe("1");
   });
 
-  it("AC2: raises ApiError with the server's message and status", async () => {
+  it("S1_AC3: raises ApiError with the server's message and status", async () => {
     setup();
     await expect(api.getBoard("missing")).rejects.toEqual(
       new ApiError(404, "Board not found"),
     );
   });
 
-  it("AC2: reports validation errors and non-JSON failures readably", async () => {
+  it("S1_AC3: reports validation errors and non-JSON failures readably", async () => {
     vi.stubGlobal(
       "fetch",
       vi

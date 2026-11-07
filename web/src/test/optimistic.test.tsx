@@ -9,7 +9,7 @@ import {
 } from "./render";
 
 describe("optimistic updates", () => {
-  it("AC17: a failed card move shows the new position, then rolls back with an error notice", async () => {
+  it("S1_AC7: a failed card move shows the new position, then rolls back with an error notice", async () => {
     const { user, fake } = await renderBoard((fake, boardId) => {
       fake.addCard(fake.column(boardId, "To Do").id, "A");
     });
@@ -36,7 +36,7 @@ describe("optimistic updates", () => {
     expect(cardTitles("In Progress")).toEqual([]);
   });
 
-  it("AC17: a 409 on a rename reloads the board and says so", async () => {
+  it("S1_AC7: a 409 on a rename reloads the board and says so", async () => {
     const { user, fake } = await renderBoard((fake, boardId) => {
       fake.addCard(fake.column(boardId, "To Do").id, "Mine");
     });
@@ -59,7 +59,7 @@ describe("optimistic updates", () => {
     ).toHaveLength(2);
   });
 
-  it("AC17: rolls back a failed column rename, archive and delete", async () => {
+  it("S1_AC7: rolls back a failed column rename, archive and delete", async () => {
     const { user, fake } = await renderBoard();
     fake.failNext("POST", /archive$/, 500);
     await user.click(
@@ -96,7 +96,7 @@ describe("optimistic updates", () => {
     expect(cardTitles("To Do")).toEqual([]);
   });
 
-  it("AC3, AC17: a 401 during a mutation shows the login screen", async () => {
+  it("S1_AC3, S1_AC7: a 401 during a mutation shows the login screen", async () => {
     const { user, fake } = await renderBoard();
     fake.user = null;
     await user.click(

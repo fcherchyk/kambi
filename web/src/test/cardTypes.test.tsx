@@ -18,7 +18,7 @@ async function openTypes(
 }
 
 describe("card types", () => {
-  it("AC9: adding Bug with red lists it, and the color picker offers the 10 palette keys", async () => {
+  it("S1_AC13: adding Bug with red lists it, and the color picker offers the 10 palette keys", async () => {
     const { user, fake, board } = await renderBoard();
     const panel = await openTypes(user);
     const picker = panel.getByRole("combobox", { name: "New type color" });
@@ -57,7 +57,7 @@ describe("card types", () => {
     );
   });
 
-  it("AC9: recoloring and renaming a type updates every card of that type", async () => {
+  it("S1_AC13: recoloring and renaming a type updates every card of that type", async () => {
     const { user, fake } = await renderBoard((fake, boardId) => {
       const bug = fake.addType(boardId, "Bug", "red");
       const todo = fake.column(boardId, "To Do");
@@ -90,7 +90,7 @@ describe("card types", () => {
     ["an empty name", "   ", "Type name must be 1 to 50 characters."],
     ["a too long name", "x".repeat(51), "Type name must be 1 to 50 characters."],
   ])(
-    "AC9: %s shows a client-side error and sends nothing",
+    "S1_AC13: %s shows a client-side error and sends nothing",
     async (_, name, message) => {
       const { user, fake } = await renderBoard();
       const panel = await openTypes(user);
@@ -104,7 +104,7 @@ describe("card types", () => {
     },
   );
 
-  it("AC9: renaming a type to an invalid or duplicate name shows a client-side error and sends nothing", async () => {
+  it("S1_AC13: renaming a type to an invalid or duplicate name shows a client-side error and sends nothing", async () => {
     const { user, fake } = await renderBoard((fake, boardId) => {
       fake.addType(boardId, "Bug", "red");
     });
@@ -129,7 +129,7 @@ describe("card types", () => {
     expect(fake.mutations()).toEqual([]);
   });
 
-  it("AC9: the API's 422 is shown as an error notice", async () => {
+  it("S1_AC13: the API's 422 is shown as an error notice", async () => {
     const { user, fake } = await renderBoard();
     fake.failNext("POST", /card-types/, 422);
     const panel = await openTypes(user);
@@ -144,7 +144,7 @@ describe("card types", () => {
     expect(panel.queryByText("Idea")).not.toBeInTheDocument();
   });
 
-  it("AC10: deleting a type in use asks for a replacement among the other types", async () => {
+  it("S1_AC14: deleting a type in use asks for a replacement among the other types", async () => {
     const { user, fake, board } = await renderBoard((fake, boardId) => {
       const bug = fake.addType(boardId, "Bug", "red");
       fake.addType(boardId, "Chore", "gray");
@@ -181,7 +181,7 @@ describe("card types", () => {
     await waitFor(() => expect(fake.requests.at(-1)?.method).toBe("GET"));
   });
 
-  it("AC10: an unused type is deleted without a dialog, and the last type cannot be deleted", async () => {
+  it("S1_AC14: an unused type is deleted without a dialog, and the last type cannot be deleted", async () => {
     const { user, fake } = await renderBoard((fake, boardId) => {
       fake.addType(boardId, "Bug", "red");
     });
@@ -198,7 +198,7 @@ describe("card types", () => {
     ).toBeDisabled();
   });
 
-  it("AC10: a type used only by archived cards opens the replacement dialog after the API's 422", async () => {
+  it("S1_AC14: a type used only by archived cards opens the replacement dialog after the API's 422", async () => {
     const { user, fake } = await renderBoard((fake, boardId) => {
       const bug = fake.addType(boardId, "Bug", "red");
       const old = fake.addColumn(boardId, "Old");
@@ -218,7 +218,7 @@ describe("card types", () => {
     expect(fake.types.map((t) => t.name)).toEqual(["Task", "Bug"]);
   });
 
-  it("AC10: canceling the replacement dialog leaves the type intact and sends nothing", async () => {
+  it("S1_AC14: canceling the replacement dialog leaves the type intact and sends nothing", async () => {
     const { user, fake, board } = await renderBoard((fake, boardId) => {
       const bug = fake.addType(boardId, "Bug", "red");
       const todo = fake.column(boardId, "To Do");

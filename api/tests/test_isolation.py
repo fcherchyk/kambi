@@ -1,4 +1,4 @@
-"""Criterion 6: one user can never read or change another user's data."""
+"""S1_AC6: one user can never read or change another user's data."""
 
 from collections.abc import Callable
 
@@ -109,7 +109,7 @@ FOREIGN_REFERENCE_REQUESTS: dict[str, Request] = {
 
 
 @pytest.mark.parametrize("name", FOREIGN_PATH_REQUESTS)
-def test_criterion_6_foreign_entities_in_the_path_return_404(
+def test_S1_AC6_foreign_entities_in_the_path_return_404(
     name: str, world: dict, other_api: Api, engine: Engine
 ) -> None:
     before = snapshot(engine)
@@ -121,7 +121,7 @@ def test_criterion_6_foreign_entities_in_the_path_return_404(
 
 
 @pytest.mark.parametrize("name", FOREIGN_REFERENCE_REQUESTS)
-def test_criterion_6_foreign_ids_in_body_or_query_return_422(
+def test_S1_AC6_foreign_ids_in_body_or_query_return_422(
     name: str, world: dict, other_api: Api, engine: Engine
 ) -> None:
     before = snapshot(engine)

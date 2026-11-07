@@ -1,4 +1,4 @@
-"""Criterion 17: the test database chain and its safety rules (no database needed)."""
+"""S1_AC20: the test database chain and its safety rules (no database needed)."""
 
 import pytest
 
@@ -26,7 +26,7 @@ def available(url: str, stops: list):
     return start
 
 
-def test_criterion_17_test_database_url_wins_over_every_starter() -> None:
+def test_S1_AC20_test_database_url_wins_over_every_starter() -> None:
     started: list = []
 
     chosen = choose_database(
@@ -37,7 +37,7 @@ def test_criterion_17_test_database_url_wins_over_every_starter() -> None:
     assert started == []
 
 
-def test_criterion_17_testcontainers_is_tried_before_pgserver() -> None:
+def test_S1_AC20_testcontainers_is_tried_before_pgserver() -> None:
     stops: list = []
     starters = [
         ("testcontainers", available("postgresql://container", stops)),
@@ -51,7 +51,7 @@ def test_criterion_17_testcontainers_is_tried_before_pgserver() -> None:
     assert stops == ["postgresql://container"]
 
 
-def test_criterion_17_pgserver_is_used_when_docker_is_missing() -> None:
+def test_S1_AC20_pgserver_is_used_when_docker_is_missing() -> None:
     starters = [
         ("testcontainers", unavailable("Docker is not running")),
         ("pgserver", available("postgresql://pgserver", [])),
@@ -60,7 +60,7 @@ def test_criterion_17_pgserver_is_used_when_docker_is_missing() -> None:
     assert choose_database({}, starters).source == "pgserver"
 
 
-def test_criterion_17_no_backend_raises_with_every_reason() -> None:
+def test_S1_AC20_no_backend_raises_with_every_reason() -> None:
     starters = [
         ("testcontainers", unavailable("no docker")),
         ("pgserver", unavailable("no binaries")),
@@ -70,17 +70,17 @@ def test_criterion_17_no_backend_raises_with_every_reason() -> None:
         choose_database({}, starters)
 
 
-def test_criterion_17_never_runs_against_sqlite() -> None:
+def test_S1_AC20_never_runs_against_sqlite() -> None:
     with pytest.raises(UnsafeDatabaseError):
         choose_database({"TEST_DATABASE_URL": "sqlite:///test.db"}, [])
 
 
-def test_criterion_17_never_runs_against_the_development_database() -> None:
+def test_S1_AC20_never_runs_against_the_development_database() -> None:
     env = {"TEST_DATABASE_URL": PG_URL, "DATABASE_URL": PG_URL}
 
     with pytest.raises(UnsafeDatabaseError):
         choose_database(env, [])
 
 
-def test_criterion_17_default_chain_order() -> None:
+def test_S1_AC20_default_chain_order() -> None:
     assert [source for source, _ in DEFAULT_STARTERS] == ["testcontainers", "pgserver"]

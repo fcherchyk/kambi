@@ -1,4 +1,4 @@
-"""Criterion 1: compose publishes only on localhost, and `.env.example` covers the config."""
+"""S1_AC1: compose publishes only on localhost, and `.env.example` covers the config."""
 
 import json
 import re
@@ -57,7 +57,7 @@ def published_ports(config: dict, service: str) -> list[tuple[str, str, str]]:
     ]
 
 
-def test_criterion_1_compose_publishes_only_on_localhost() -> None:
+def test_S1_AC1_compose_publishes_only_on_localhost() -> None:
     config = compose_config()
     if config is None:
         text = COMPOSE_FILE.read_text()
@@ -73,7 +73,7 @@ def test_criterion_1_compose_publishes_only_on_localhost() -> None:
     assert "db-data" in config["volumes"]
 
 
-def test_criterion_1_env_example_lists_every_variable_without_real_values() -> None:
+def test_S1_AC1_env_example_lists_every_variable_without_real_values() -> None:
     pairs = env_example()
 
     assert set(ENV_VARS) | {"POSTGRES_PASSWORD"} <= set(pairs)
@@ -83,7 +83,7 @@ def test_criterion_1_env_example_lists_every_variable_without_real_values() -> N
         assert not value.startswith("GOCSPX-"), name
 
 
-def test_criterion_1_compose_reads_only_variables_listed_in_env_example() -> None:
+def test_S1_AC1_compose_reads_only_variables_listed_in_env_example() -> None:
     used = set(re.findall(r"\$\{(\w+)", COMPOSE_FILE.read_text()))
 
     assert used <= set(env_example())
@@ -100,7 +100,7 @@ def in_git_repo() -> bool:
 
 # Asks git which files it ignores; outside a repository (e.g. a `git archive` copy) it is skipped.
 @pytest.mark.skipif(not in_git_repo(), reason="not inside a git repository")
-def test_criterion_1_dot_env_is_ignored_by_git() -> None:
+def test_S1_AC1_dot_env_is_ignored_by_git() -> None:
     result = subprocess.run(
         ["git", "check-ignore", "-q", ".env"], cwd=ROOT, capture_output=True, check=False
     )

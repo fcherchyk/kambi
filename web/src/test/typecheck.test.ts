@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const CONFIG = fileURLToPath(new URL("../../tsconfig.json", import.meta.url));
 
 describe("type check", () => {
-  it("AC18: tsc --noEmit passes with strict", () => {
+  it("S1_AC20: tsc --noEmit passes with strict", () => {
     const { config } = ts.readConfigFile(CONFIG, (path) =>
       ts.sys.readFile(path),
     );

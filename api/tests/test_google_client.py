@@ -53,7 +53,7 @@ def client_returning(key: RSAKey, token: str | None) -> tuple[GoogleOAuthClient,
     return GoogleOAuthClient(CLIENT_ID, "secret", "http://localhost/cb", fetch=fetch), calls
 
 
-def test_authorization_url_asks_for_minimal_scopes_with_state_and_nonce() -> None:
+def test_S1_AC2_authorization_url_asks_for_minimal_scopes_with_state_and_nonce() -> None:
     client = GoogleOAuthClient(CLIENT_ID, "secret", "http://localhost:5174/api/auth/callback")
 
     url = client.authorization_url("s-1", "n-1")
@@ -67,7 +67,7 @@ def test_authorization_url_asks_for_minimal_scopes_with_state_and_nonce() -> Non
     assert query["response_type"] == ["code"]
 
 
-def test_fetch_identity_exchanges_the_code_and_verifies_the_id_token(
+def test_S1_AC2_fetch_identity_exchanges_the_code_and_verifies_the_id_token(
     signing_key: RSAKey,
 ) -> None:
     client, calls = client_returning(signing_key, id_token(signing_key))
@@ -89,14 +89,14 @@ def test_fetch_identity_exchanges_the_code_and_verifies_the_id_token(
         {"exp": int(time.time()) - 60},
     ],
 )
-def test_fetch_identity_rejects_invalid_claims(signing_key: RSAKey, overrides: dict) -> None:
+def test_S1_AC2_fetch_identity_rejects_invalid_claims(signing_key: RSAKey, overrides: dict) -> None:
     client, _ = client_returning(signing_key, id_token(signing_key, **overrides))
 
     with pytest.raises(IdentityError):
         client.fetch_identity("code")
 
 
-def test_fetch_identity_rejects_a_token_signed_with_another_key(signing_key: RSAKey) -> None:
+def test_S1_AC2_fetch_identity_rejects_a_token_signed_with_another_key(signing_key: RSAKey) -> None:
     other = RSAKey.generate_key(2048, parameters={"kid": "test-key", "alg": "RS256"})
     client, _ = client_returning(signing_key, id_token(other))
 
@@ -104,14 +104,14 @@ def test_fetch_identity_rejects_a_token_signed_with_another_key(signing_key: RSA
         client.fetch_identity("code")
 
 
-def test_fetch_identity_without_id_token_fails(signing_key: RSAKey) -> None:
+def test_S1_AC2_fetch_identity_without_id_token_fails(signing_key: RSAKey) -> None:
     client, _ = client_returning(signing_key, None)
 
     with pytest.raises(IdentityError):
         client.fetch_identity("code")
 
 
-def test_network_errors_become_identity_errors() -> None:
+def test_S1_AC2_network_errors_become_identity_errors() -> None:
     def failing_fetch(url: str, form: dict[str, str] | None) -> dict:
         raise OSError("connection refused")
 

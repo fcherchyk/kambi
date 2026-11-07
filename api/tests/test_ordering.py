@@ -1,4 +1,4 @@
-"""Criterion 8: fractional sort keys, checked in Python and in PostgreSQL's text order."""
+"""S1_AC8: fractional sort keys, checked in Python and in PostgreSQL's text order."""
 
 import random
 
@@ -19,7 +19,7 @@ def pg_sorted(engine: Engine, keys: list[str]) -> list[str]:
         return list(rows.scalars())
 
 
-def test_criterion_8_key_between_sorts_strictly_between_neighbors() -> None:
+def test_S1_AC8_key_between_sorts_strictly_between_neighbors() -> None:
     first = key_between(None, None)
     before = key_between(None, first)
     after = key_between(first, None)
@@ -30,7 +30,7 @@ def test_criterion_8_key_between_sorts_strictly_between_neighbors() -> None:
 
 
 @pytest.mark.parametrize("position", ["first", "last", "same-gap-low", "same-gap-high"])
-def test_criterion_8_fifty_inserts_at_the_same_position(position: str) -> None:
+def test_S1_AC8_fifty_inserts_at_the_same_position(position: str) -> None:
     low, high = "V", "W"
     keys = [low, high]
     for _ in range(50):
@@ -53,7 +53,7 @@ def test_criterion_8_fifty_inserts_at_the_same_position(position: str) -> None:
     assert len(set(keys)) == len(keys)
 
 
-def test_criterion_8_random_inserts_match_postgres_c_collation(engine: Engine) -> None:
+def test_S1_AC8_random_inserts_match_postgres_c_collation(engine: Engine) -> None:
     rng = random.Random(42)
     keys: list[str] = []
     for _ in range(300):
@@ -69,7 +69,7 @@ def test_criterion_8_random_inserts_match_postgres_c_collation(engine: Engine) -
     assert pg_sorted(engine, shuffled) == keys
 
 
-def test_criterion_8_sort_key_columns_use_the_c_collation(engine: Engine) -> None:
+def test_S1_AC8_sort_key_columns_use_the_c_collation(engine: Engine) -> None:
     with engine.connect() as connection:
         rows = connection.execute(
             text(
@@ -81,7 +81,7 @@ def test_criterion_8_sort_key_columns_use_the_c_collation(engine: Engine) -> Non
     assert rows == [("board_columns", "C"), ("card_types", "C"), ("cards", "C")]
 
 
-def test_criterion_8_keys_after_and_anchor_helpers() -> None:
+def test_S1_AC8_keys_after_and_anchor_helpers() -> None:
     keys = keys_after(None, 5)
     assert keys == sorted(keys) and len(set(keys)) == 5
     assert key_after_anchor([], None) == key_between(None, None)
@@ -94,12 +94,12 @@ def test_criterion_8_keys_after_and_anchor_helpers() -> None:
     ("before", "after"),
     [("b", "a"), ("a", "a"), ("", None), ("a0", None), ("a-", None)],
 )
-def test_criterion_8_invalid_keys_are_rejected(before: str, after: str | None) -> None:
+def test_S1_AC8_invalid_keys_are_rejected(before: str, after: str | None) -> None:
     with pytest.raises(ValueError):
         key_between(before, after)
 
 
-def test_criterion_8_moving_a_column_changes_exactly_one_row(api: Api, engine: Engine) -> None:
+def test_S1_AC8_moving_a_column_changes_exactly_one_row(api: Api, engine: Engine) -> None:
     board = api.board(api.create_board("Home")["id"])
     todo, _, done = board["columns"]
     before = snapshot(engine)
@@ -114,7 +114,7 @@ def test_criterion_8_moving_a_column_changes_exactly_one_row(api: Api, engine: E
     assert after["cards"] == before["cards"]
 
 
-def test_criterion_8_moving_a_column_after_another_changes_exactly_one_row(
+def test_S1_AC8_moving_a_column_after_another_changes_exactly_one_row(
     api: Api, engine: Engine
 ) -> None:
     board = api.board(api.create_board("Home")["id"])
@@ -130,9 +130,7 @@ def test_criterion_8_moving_a_column_after_another_changes_exactly_one_row(
     assert doing["sort_key"] < changed[0]["sort_key"] < done["sort_key"]
 
 
-def test_criterion_8_moving_a_card_changes_sort_key_of_exactly_one_row(
-    api: Api, engine: Engine
-) -> None:
+def test_S1_AC8_moving_a_card_changes_sort_key_of_exactly_one_row(api: Api, engine: Engine) -> None:
     board = api.board(api.create_board("Home")["id"])
     todo, _, done = board["columns"]
     c1 = api.add_card(done["id"], "1")

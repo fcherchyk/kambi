@@ -1,4 +1,4 @@
-"""Criteria 15 and 16: the card lifecycle and moves between any columns."""
+"""S1_AC15 to S1_AC17: the card lifecycle and moves between any columns."""
 
 import pytest
 from sqlalchemy import Engine
@@ -11,7 +11,7 @@ def board(api: Api) -> dict:
     return api.board(api.create_board("Home")["id"])
 
 
-def test_criterion_15_new_card_is_trimmed_and_appended_with_the_first_type(
+def test_S1_AC15_new_card_is_trimmed_and_appended_with_the_first_type(
     api: Api, board: dict
 ) -> None:
     todo = column_named(board, "To Do")
@@ -28,7 +28,7 @@ def test_criterion_15_new_card_is_trimmed_and_appended_with_the_first_type(
     assert titles == [first["title"], "Buy milk"]
 
 
-def test_criterion_15_edit_persists_title_description_and_type(api: Api, board: dict) -> None:
+def test_S1_AC15_edit_persists_title_description_and_type(api: Api, board: dict) -> None:
     todo = column_named(board, "To Do")
     bug = api.add_type(board["id"], "Bug")
     card = api.add_card(todo["id"], "Card")
@@ -55,7 +55,7 @@ def test_criterion_15_edit_persists_title_description_and_type(api: Api, board: 
         {"title": "ok", "description": "x" * 10_001},
     ],
 )
-def test_criterion_15_invalid_cards_return_422(api: Api, board: dict, body: dict) -> None:
+def test_S1_AC15_invalid_cards_return_422(api: Api, board: dict, body: dict) -> None:
     todo = column_named(board, "To Do")
     card = api.add_card(todo["id"], "Card")
 
@@ -64,7 +64,7 @@ def test_criterion_15_invalid_cards_return_422(api: Api, board: dict, body: dict
     assert patch.status_code == 422
 
 
-def test_criterion_15_limits_are_inclusive(api: Api, board: dict) -> None:
+def test_S1_AC15_limits_are_inclusive(api: Api, board: dict) -> None:
     todo = column_named(board, "To Do")
 
     card = api.add_card(todo["id"], "x" * 200, description="y" * 10_000)
@@ -73,9 +73,7 @@ def test_criterion_15_limits_are_inclusive(api: Api, board: dict) -> None:
     assert len(card["description"]) == 10_000
 
 
-def test_criterion_15_type_from_another_board_returns_422(
-    api: Api, board: dict, engine: Engine
-) -> None:
+def test_S1_AC15_type_from_another_board_returns_422(api: Api, board: dict, engine: Engine) -> None:
     other_board = api.board(api.create_board("Other")["id"])
     foreign_type = other_board["card_types"][0]["id"]
     todo = column_named(board, "To Do")
@@ -90,7 +88,7 @@ def test_criterion_15_type_from_another_board_returns_422(
     assert snapshot(engine) == before
 
 
-def test_criterion_15_unknown_type_id_returns_422(api: Api, board: dict, engine: Engine) -> None:
+def test_S1_AC15_unknown_type_id_returns_422(api: Api, board: dict, engine: Engine) -> None:
     unknown_type = "00000000-0000-0000-0000-000000000000"
     todo = column_named(board, "To Do")
     card = api.add_card(todo["id"], "Card")
@@ -104,7 +102,7 @@ def test_criterion_15_unknown_type_id_returns_422(api: Api, board: dict, engine:
     assert snapshot(engine) == before
 
 
-def test_criterion_15_html_in_titles_is_stored_unchanged(api: Api, board: dict) -> None:
+def test_S1_AC17_html_in_titles_is_stored_unchanged(api: Api, board: dict) -> None:
     todo = column_named(board, "To Do")
     title = "<script>alert('x')</script>"
 
@@ -115,7 +113,7 @@ def test_criterion_15_html_in_titles_is_stored_unchanged(api: Api, board: dict) 
     assert saved["description"] == "<b>bold</b>"
 
 
-def test_criterion_15_delete_removes_the_card(api: Api, board: dict) -> None:
+def test_S1_AC15_delete_removes_the_card(api: Api, board: dict) -> None:
     todo = column_named(board, "To Do")
     card = api.add_card(todo["id"], "Card")
 
@@ -133,7 +131,7 @@ def move_setup(api: Api, board: dict) -> dict:
     return {"board": board, "todo": todo, "done": done, "a": a, "b": b, "c": c, "x": x}
 
 
-def test_criterion_16_move_after_a_card_updates_only_the_moved_row(
+def test_S1_AC16_move_after_a_card_updates_only_the_moved_row(
     api: Api, move_setup: dict, engine: Engine
 ) -> None:
     x, a, done = move_setup["x"], move_setup["a"], move_setup["done"]
@@ -157,7 +155,7 @@ def test_criterion_16_move_after_a_card_updates_only_the_moved_row(
     }
 
 
-def test_criterion_16_moves_need_no_flow_validation(api: Api, move_setup: dict) -> None:
+def test_S1_AC16_moves_need_no_flow_validation(api: Api, move_setup: dict) -> None:
     board = move_setup["board"]
     c, todo = move_setup["c"], move_setup["todo"]
     new_column = api.add_column(board["id"], "Brand new")
@@ -176,7 +174,7 @@ def test_criterion_16_moves_need_no_flow_validation(api: Api, move_setup: dict) 
     assert [card["title"] for card in cards_in(detail, new_column["id"])] == ["c"]
 
 
-def test_criterion_16_move_first_and_within_the_same_column(api: Api, move_setup: dict) -> None:
+def test_S1_AC16_move_first_and_within_the_same_column(api: Api, move_setup: dict) -> None:
     c, done = move_setup["c"], move_setup["done"]
 
     first = api.post(
@@ -193,7 +191,7 @@ def test_criterion_16_move_first_and_within_the_same_column(api: Api, move_setup
     assert [card["title"] for card in cards_in(detail, done["id"])] == ["a", "b", "c"]
 
 
-def test_criterion_16_after_id_outside_the_target_column_returns_422(
+def test_S1_AC16_after_id_outside_the_target_column_returns_422(
     api: Api, move_setup: dict, engine: Engine
 ) -> None:
     x, done, todo = move_setup["x"], move_setup["done"], move_setup["todo"]
@@ -210,7 +208,7 @@ def test_criterion_16_after_id_outside_the_target_column_returns_422(
     assert snapshot(engine) == before
 
 
-def test_criterion_16_move_to_empty_column_with_null_after_id(api: Api, board: dict) -> None:
+def test_S1_AC16_move_to_empty_column_with_null_after_id(api: Api, board: dict) -> None:
     todo = column_named(board, "To Do")
     done = column_named(board, "Done")
     c = api.add_card(todo["id"], "Card")
@@ -226,7 +224,7 @@ def test_criterion_16_move_to_empty_column_with_null_after_id(api: Api, board: d
     assert cards_in(detail, todo["id"]) == []
 
 
-def test_criterion_16_move_to_unknown_column_returns_422(
+def test_S1_AC16_move_to_unknown_column_returns_422(
     api: Api, move_setup: dict, engine: Engine
 ) -> None:
     x = move_setup["x"]

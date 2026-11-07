@@ -25,7 +25,7 @@ const selected = () =>
   document.querySelector(".card[aria-current='true'] .card-title")?.textContent;
 
 describe("keyboard", () => {
-  it("AC16: arrows move the selection across and within columns, skipping empty columns", async () => {
+  it("S1_AC18: arrows move the selection across and within columns, skipping empty columns", async () => {
     const { user } = await renderBoard(seedGrid);
     await user.keyboard("{ArrowDown}");
     expect(selected()).toBe("A1");
@@ -43,7 +43,7 @@ describe("keyboard", () => {
     expect(selected()).toBe("A1");
   });
 
-  it("AC16: Enter opens the card dialog and Escape closes it", async () => {
+  it("S1_AC18: Enter opens the card dialog and Escape closes it", async () => {
     const { user, board, fake } = await renderBoard(seedGrid);
     await user.click(cardElement("A2"));
     await user.keyboard("{Enter}");
@@ -53,7 +53,7 @@ describe("keyboard", () => {
     expect(currentPath()).toBe(`/b/${board.id}`);
   });
 
-  it("AC16: F2 renames the selected card inline", async () => {
+  it("S1_AC18: F2 renames the selected card inline", async () => {
     const { user, fake } = await renderBoard(seedGrid);
     await user.click(cardElement("A1"));
     await user.keyboard("{F2}");
@@ -82,7 +82,7 @@ describe("keyboard", () => {
     expect(fake.mutations()).toHaveLength(1);
   });
 
-  it("AC16: N opens the add-card input in the selected column", async () => {
+  it("S1_AC18: N opens the add-card input in the selected column", async () => {
     const { user } = await renderBoard(seedGrid);
     await user.click(cardElement("C1"));
     await user.keyboard("n");
@@ -92,7 +92,7 @@ describe("keyboard", () => {
     ).toHaveFocus();
   });
 
-  it("AC16: shortcuts are ignored while focus is in a text input", async () => {
+  it("S1_AC18: shortcuts are ignored while focus is in a text input", async () => {
     const { user, fake } = await renderBoard(seedGrid);
     await user.click(cardElement("A1"));
     await user.click(
@@ -109,7 +109,7 @@ describe("keyboard", () => {
     expect(fake.mutations()).toEqual([]);
   });
 
-  it("AC16: ? and the ? button open a panel that lists every shortcut", async () => {
+  it("S1_AC18: ? and the ? button open a panel that lists every shortcut", async () => {
     const { user } = await renderBoard(seedGrid);
     await user.keyboard("?");
     let panel = within(
@@ -126,7 +126,7 @@ describe("keyboard", () => {
     expect(panel.getAllByRole("row")).toHaveLength(SHORTCUTS.length);
   });
 
-  it("AC16: every registered shortcut is in the help panel and has a visible button", async () => {
+  it("S1_AC18: every registered shortcut is in the help panel and has a visible button", async () => {
     const { user, fake } = await renderBoard(seedGrid);
     await user.click(cardElement("A1"));
     await user.click(
@@ -153,7 +153,7 @@ describe("keyboard", () => {
     expect(fake.mutations()).toEqual([]);
   });
 
-  it("AC16: each toolbar button runs its action", async () => {
+  it("S1_AC18: each toolbar button runs its action", async () => {
     const { user, fake, board } = await renderBoard(seedGrid);
     const press = (name: string) =>
       user.click(screen.getByRole("button", { name }));
@@ -190,7 +190,7 @@ describe("keyboard", () => {
     expect(currentPath()).toBe(`/b/${board.id}/c/${fake.card("A1").id}`);
   });
 
-  it("AC16: maps keys to shortcuts and ignores modified keys", () => {
+  it("S1_AC18: maps keys to shortcuts and ignores modified keys", () => {
     const key = (init: KeyboardEventInit) => new KeyboardEvent("keydown", init);
     expect(matchShortcut(key({ key: "ArrowLeft", shiftKey: true }))).toBe(
       "move-left",
@@ -201,7 +201,7 @@ describe("keyboard", () => {
     expect(matchShortcut(key({ key: "n", ctrlKey: true }))).toBeNull();
   });
 
-  it("AC16: ? opens the help panel on the boards list too", async () => {
+  it("S1_AC18: ? opens the help panel on the boards list too", async () => {
     renderApp("/");
     await screen.findByText("No boards yet. Create one above.");
     fireEvent.keyDown(window, { key: "?" });

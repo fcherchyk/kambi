@@ -1,4 +1,4 @@
-"""Criteria 9 to 12: columns created, renamed, moved, archived, restored and deleted."""
+"""S1_AC9 to S1_AC12: columns created, renamed, moved, archived, restored and deleted."""
 
 import pytest
 from sqlalchemy import Engine
@@ -15,7 +15,7 @@ def names(board: dict) -> list[str]:
     return [column["name"] for column in board["columns"]]
 
 
-def test_criterion_9_column_created_after_to_do_is_second(api: Api, board: dict) -> None:
+def test_S1_AC9_column_created_after_to_do_is_second(api: Api, board: dict) -> None:
     todo = column_named(board, "To Do")
 
     api.add_column(board["id"], "Review", after_id=todo["id"])
@@ -23,7 +23,7 @@ def test_criterion_9_column_created_after_to_do_is_second(api: Api, board: dict)
     assert names(api.board(board["id"])) == ["To Do", "Review", "In Progress", "Done"]
 
 
-def test_criterion_9_column_without_after_id_is_appended_and_null_is_first(
+def test_S1_AC9_column_without_after_id_is_appended_and_null_is_first(
     api: Api, board: dict
 ) -> None:
     api.add_column(board["id"], "Last")
@@ -32,7 +32,7 @@ def test_criterion_9_column_without_after_id_is_appended_and_null_is_first(
     assert names(api.board(board["id"])) == ["First", "To Do", "In Progress", "Done", "Last"]
 
 
-def test_criterion_9_rename_follows_the_name_rule(api: Api, board: dict) -> None:
+def test_S1_AC9_rename_follows_the_name_rule(api: Api, board: dict) -> None:
     todo = column_named(board, "To Do")
     url = f"/api/columns/{todo['id']}"
 
@@ -47,16 +47,16 @@ def test_criterion_9_rename_follows_the_name_rule(api: Api, board: dict) -> None
 
 
 @pytest.mark.parametrize("name", ["", "   ", "x" * 101])
-def test_criterion_9_invalid_column_names_return_422(api: Api, board: dict, name: str) -> None:
+def test_S1_AC9_invalid_column_names_return_422(api: Api, board: dict, name: str) -> None:
     assert api.post(f"/api/boards/{board['id']}/columns", {"name": name}).status_code == 422
 
 
-def test_criterion_9_name_of_100_chars_after_trim_is_valid(api: Api, board: dict) -> None:
+def test_S1_AC9_name_of_100_chars_after_trim_is_valid(api: Api, board: dict) -> None:
     created = api.add_column(board["id"], "  " + "x" * 100 + "  ")
     assert created["name"] == "x" * 100
 
 
-def test_criterion_9_move_to_the_end_persists(api: Api, board: dict) -> None:
+def test_S1_AC9_move_to_the_end_persists(api: Api, board: dict) -> None:
     todo = column_named(board, "To Do")
     done = column_named(board, "Done")
 
@@ -66,7 +66,7 @@ def test_criterion_9_move_to_the_end_persists(api: Api, board: dict) -> None:
     assert names(api.board(board["id"])) == ["In Progress", "Done", "To Do"]
 
 
-def test_criterion_9_move_after_itself_or_unknown_column_returns_422(
+def test_S1_AC9_move_after_itself_or_unknown_column_returns_422(
     api: Api, board: dict, engine: Engine
 ) -> None:
     todo = column_named(board, "To Do")
@@ -88,7 +88,7 @@ def archived_setup(api: Api, board: dict) -> dict:
     return {"column": archived, "cards": [first, second], "board": board}
 
 
-def test_criterion_10_archived_column_and_cards_move_to_the_archive(
+def test_S1_AC10_archived_column_and_cards_move_to_the_archive(
     api: Api, archived_setup: dict
 ) -> None:
     board_id = archived_setup["board"]["id"]
@@ -103,7 +103,7 @@ def test_criterion_10_archived_column_and_cards_move_to_the_archive(
     assert archive["columns"][0]["archived_at"] is not None
 
 
-def test_criterion_10_cards_in_an_archived_column_are_read_only(
+def test_S1_AC10_cards_in_an_archived_column_are_read_only(
     api: Api, archived_setup: dict, engine: Engine
 ) -> None:
     board = archived_setup["board"]
@@ -137,7 +137,7 @@ def test_criterion_10_cards_in_an_archived_column_are_read_only(
     assert snapshot(engine) == before
 
 
-def test_criterion_10_restore_brings_back_column_and_cards_untouched(
+def test_S1_AC10_restore_brings_back_column_and_cards_untouched(
     api: Api, archived_setup: dict
 ) -> None:
     board_id = archived_setup["board"]["id"]
@@ -156,13 +156,13 @@ def test_criterion_10_restore_brings_back_column_and_cards_untouched(
     assert api.archive(board_id)["columns"] == []
 
 
-def test_criterion_10_restoring_an_active_column_returns_422(api: Api, board: dict) -> None:
+def test_S1_AC10_restoring_an_active_column_returns_422(api: Api, board: dict) -> None:
     todo = column_named(board, "To Do")
 
     assert api.post(f"/api/columns/{todo['id']}/restore", {"version": 1}).status_code == 422
 
 
-def test_criterion_10_creating_column_after_archived_column_returns_422(
+def test_S1_AC10_creating_column_after_archived_column_returns_422(
     api: Api, archived_setup: dict
 ) -> None:
     board_id = archived_setup["board"]["id"]
@@ -175,9 +175,7 @@ def test_criterion_10_creating_column_after_archived_column_returns_422(
     assert response.status_code == 422
 
 
-def test_criterion_10_new_columns_never_reuse_an_archived_columns_key(
-    api: Api, board: dict
-) -> None:
+def test_S1_AC10_new_columns_never_reuse_an_archived_columns_key(api: Api, board: dict) -> None:
     doing = column_named(board, "In Progress")
     todo = column_named(board, "To Do")
     archived = api.archive_column(doing)
@@ -197,7 +195,7 @@ def delete_setup(api: Api, board: dict) -> dict:
     return {"board": board, "column": todo, "target": done, "cards": moving, "existing": existing}
 
 
-def test_criterion_11_delete_moves_cards_to_the_end_of_target(api: Api, delete_setup: dict) -> None:
+def test_S1_AC11_delete_moves_cards_to_the_end_of_target(api: Api, delete_setup: dict) -> None:
     column, target = delete_setup["column"], delete_setup["target"]
 
     response = api.delete(
@@ -212,7 +210,7 @@ def test_criterion_11_delete_moves_cards_to_the_end_of_target(api: Api, delete_s
     assert titles == ["Existing", "A", "B", "C"]
 
 
-def test_criterion_11_delete_with_cards_delete_removes_them(
+def test_S1_AC11_delete_with_cards_delete_removes_them(
     api: Api, delete_setup: dict, engine: Engine
 ) -> None:
     column = delete_setup["column"]
@@ -225,7 +223,7 @@ def test_criterion_11_delete_with_cards_delete_removes_them(
     assert [row["title"] for row in after["cards"]] == ["Existing"]
 
 
-def test_criterion_11_invalid_delete_requests_return_422_and_change_nothing(
+def test_S1_AC11_invalid_delete_requests_return_422_and_change_nothing(
     api: Api, delete_setup: dict, engine: Engine, other_api: Api
 ) -> None:
     board = delete_setup["board"]
@@ -250,7 +248,7 @@ def test_criterion_11_invalid_delete_requests_return_422_and_change_nothing(
     assert snapshot(engine) == before
 
 
-def test_criterion_11_empty_column_is_deleted_without_parameters(api: Api, board: dict) -> None:
+def test_S1_AC11_empty_column_is_deleted_without_parameters(api: Api, board: dict) -> None:
     doing = column_named(board, "In Progress")
 
     response = api.delete(f"/api/columns/{doing['id']}", params={"version": 1})
@@ -259,9 +257,7 @@ def test_criterion_11_empty_column_is_deleted_without_parameters(api: Api, board
     assert names(api.board(board["id"])) == ["To Do", "Done"]
 
 
-def test_criterion_11_archived_column_can_be_deleted_from_the_archive(
-    api: Api, board: dict
-) -> None:
+def test_S1_AC11_archived_column_can_be_deleted_from_the_archive(api: Api, board: dict) -> None:
     doing = column_named(board, "In Progress")
     api.add_card(doing["id"], "Old")
     archived = api.archive_column(doing)
@@ -275,7 +271,7 @@ def test_criterion_11_archived_column_can_be_deleted_from_the_archive(
     assert api.archive(board["id"])["columns"] == []
 
 
-def test_criterion_12_last_active_column_cannot_be_deleted_or_archived(
+def test_S1_AC12_last_active_column_cannot_be_deleted_or_archived(
     api: Api, board: dict, engine: Engine
 ) -> None:
     todo, doing, done = board["columns"]

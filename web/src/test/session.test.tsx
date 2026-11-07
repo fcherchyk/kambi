@@ -4,7 +4,7 @@ import { renderApp, screen } from "./render";
 
 describe("session", () => {
   it.each(["/", "/b/b1", "/b/b1/c/card9"])(
-    "AC3: %s shows the login screen when /api/me answers 401",
+    "S1_AC2: %s shows the login screen when /api/me answers 401",
     async (path) => {
       const fake = new FakeApi();
       fake.user = null;
@@ -16,7 +16,7 @@ describe("session", () => {
     },
   );
 
-  it("AC3: Log out sends POST /api/auth/logout and shows the login screen", async () => {
+  it("S1_AC3: Log out sends POST /api/auth/logout and shows the login screen", async () => {
     const { fake, user } = renderApp("/");
     expect(await screen.findByText("Ada Lovelace")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Log out" }));
@@ -28,7 +28,7 @@ describe("session", () => {
     ]);
   });
 
-  it("AC3: a 401 on a later call shows the login screen", async () => {
+  it("S1_AC3: a 401 on a later call shows the login screen", async () => {
     const fake = new FakeApi();
     fake.addBoard("Home");
     const { user } = renderApp("/", fake);
@@ -40,7 +40,7 @@ describe("session", () => {
     ).toBeInTheDocument();
   });
 
-  it("AC3: shows an error notice when the server cannot be reached", async () => {
+  it("S1_AC3: shows an error notice when the server cannot be reached", async () => {
     const fake = new FakeApi();
     fake.failNext("GET", /\/api\/me/, 500);
     renderApp("/", fake);
@@ -52,7 +52,7 @@ describe("session", () => {
     ).toBeInTheDocument();
   });
 
-  it("offers the dev login only when VITE_DEV_LOGIN is true", async () => {
+  it("S1_AC4: offers the dev login only when VITE_DEV_LOGIN is true", async () => {
     const fake = new FakeApi();
     fake.user = null;
     vi.stubEnv("VITE_DEV_LOGIN", "true");

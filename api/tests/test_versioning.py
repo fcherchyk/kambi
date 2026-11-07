@@ -1,4 +1,4 @@
-"""Criterion 7: a stale `version` returns 409 and changes nothing."""
+"""S1_AC7: a stale `version` returns 409 and changes nothing."""
 
 from collections.abc import Callable
 
@@ -75,7 +75,7 @@ MUTATIONS: dict[tuple[str, str], Mutation] = {
 
 
 @pytest.mark.parametrize(("entity", "action"), MUTATIONS)
-def test_criterion_7_stale_version_returns_409_and_current_one_succeeds(
+def test_S1_AC7_stale_version_returns_409_and_current_one_succeeds(
     entity: str, action: str, api: Api, ids: dict, engine: Engine
 ) -> None:
     bump(api, entity, ids)
@@ -92,7 +92,7 @@ def test_criterion_7_stale_version_returns_409_and_current_one_succeeds(
         assert current.json()["version"] == 3
 
 
-def test_criterion_7_restore_checks_the_version(api: Api, ids: dict, engine: Engine) -> None:
+def test_S1_AC7_restore_checks_the_version(api: Api, ids: dict, engine: Engine) -> None:
     url = f"/api/columns/{ids['column']}"
     assert api.post(f"{url}/archive", {"version": 1}).status_code == 200
     before = snapshot(engine)
@@ -104,13 +104,13 @@ def test_criterion_7_restore_checks_the_version(api: Api, ids: dict, engine: Eng
     assert restored.json()["version"] == 3
 
 
-def test_criterion_7_version_must_be_positive(api: Api, ids: dict) -> None:
+def test_S1_AC7_version_must_be_positive(api: Api, ids: dict) -> None:
     response = api.patch(f"/api/boards/{ids['board']}", {"name": "x", "version": 0})
 
     assert response.status_code == 422
 
 
-def test_criterion_7_future_version_returns_409(api: Api, ids: dict, engine: Engine) -> None:
+def test_S1_AC7_future_version_returns_409(api: Api, ids: dict, engine: Engine) -> None:
     before = snapshot(engine)
     response = api.patch(f"/api/boards/{ids['board']}", {"name": "x", "version": 99})
 

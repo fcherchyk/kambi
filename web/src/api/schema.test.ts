@@ -14,7 +14,7 @@ async function generate(): Promise<string> {
 }
 
 describe("generated API client", () => {
-  it("AC2: src/api/schema.ts is generated from the API's OpenAPI schema", async () => {
+  it("S1_AC19: src/api/schema.ts is generated from the API's OpenAPI schema", async () => {
     const generated = await generate();
     // Bootstrap: a missing file (deleted on purpose to regenerate it) is written once.
     if (!existsSync(SCHEMA_FILE)) writeFileSync(SCHEMA_FILE, generated);

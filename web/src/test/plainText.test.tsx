@@ -27,7 +27,7 @@ function seed() {
 }
 
 describe("plain text", () => {
-  it("AC13: the boards list shows markup in names as literal text", async () => {
+  it("S1_AC17: the boards list shows markup in names as literal text", async () => {
     const { fake } = seed();
     renderApp("/", fake);
     expect(await screen.findByRole("link", { name: EVIL })).toHaveTextContent(
@@ -36,7 +36,7 @@ describe("plain text", () => {
     noInjectedElements();
   });
 
-  it("AC13: the board view and the card dialog show markup as literal text", async () => {
+  it("S1_AC17: the board view and the card dialog show markup as literal text", async () => {
     const { fake, board, card } = seed();
     renderApp(`/b/${board.id}/c/${card.id}`, fake);
     expect(
@@ -57,7 +57,7 @@ describe("plain text", () => {
     noInjectedElements();
   });
 
-  it("AC13: the archive shows markup as literal text", async () => {
+  it("S1_AC17: the archive shows markup as literal text", async () => {
     const { fake, board } = seed();
     renderApp(`/b/${board.id}/archive`, fake);
     expect(
