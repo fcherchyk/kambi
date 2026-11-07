@@ -13,7 +13,7 @@ Slice 1 is the minimum usable Kambi: a local, single-person, Trello-style kanban
 - **Robustness:** optimistic updates with rollback, versioned writes (`409` on conflicts), per-user isolation and CSRF protection.
 - **Running it:** locally with Docker (`run-docker.sh`), or offline without Docker (`run-sandbox.sh`).
 
-**Not in slice 1:** archiving single cards, filters, search, links to mapa-mental, real-time sync, deployment beyond localhost and mobile. These are listed in the README roadmap; slice 2 starts with archiving single cards, filtering by type and search.
+**Not in slice 1:** swimlanes (slice 2), subtasks (3), checklists in tasks and subtasks (4), column types (5), estimation (6) and a velocity report (7). Later: archiving single cards, filters, search, real-time sync, deployment beyond localhost and mobile. See the README roadmap.
 
 ## Acceptance criteria
 

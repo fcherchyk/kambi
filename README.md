@@ -2,10 +2,9 @@
 
 Kambi is a Trello-style kanban board for one person, run locally with Docker Compose. You
 sign in with Google, create boards, shape each board's workflow with columns, and track
-cards of different types as they move across them. It mirrors the architecture of
-mapa-mental (FastAPI, PostgreSQL, a React SPA behind a same-origin `/api` proxy), so the two
-apps can later link ideas to tasks. This repository holds slice 1: the API in `api/` and the
-web UI in `web/`.
+cards of different types as they move across them. It is built with FastAPI, PostgreSQL and
+a React SPA behind a same-origin `/api` proxy. This repository holds slice 1: the API in
+`api/` and the web UI in `web/`.
 
 ## Features
 
@@ -43,7 +42,7 @@ web UI in `web/`.
 ### 1. Google OAuth setup
 
 1. Open the [Google Cloud console](https://console.cloud.google.com/) and create a project,
-   or pick an existing one (mapa-mental's project works too).
+   or pick an existing one.
 2. Go to **APIs & Services → OAuth consent screen** (called **Google Auth Platform** in newer
    consoles):
    - User type: **External**.
@@ -57,7 +56,7 @@ web UI in `web/`.
 4. Copy the **Client ID** and **Client secret** from the client's details. In the next step,
    the Client ID goes in `GOOGLE_CLIENT_ID` and the secret in `GOOGLE_CLIENT_SECRET`.
 
-If you reuse mapa-mental's OAuth client, just add the redirect URI above to it.
+If you reuse an existing OAuth client, just add the origin and redirect URI above to it.
 
 ### 2. Configure
 
@@ -336,15 +335,20 @@ test-sandbox.sh     both test suites offline, embedded PostgreSQL
 - [ ] Count a board's columns and cards in the delete confirmation without two extra requests.
 - [ ] Decide what happens to a card type used only by archived cards (the API returns `422`).
 - [ ] Decide whether a card in an archived column opens read-only or redirects to the archive.
-- [ ] Confirm against mapa-mental that Shift+↑/↓ reorders and F2 renames inline, and approve
-  the palette's hex values.
+- [ ] Confirm that Shift+↑/↓ reorders and F2 renames inline, and approve the palette's hex
+  values.
 - [ ] Production build, static hosting and CSP headers.
 - [ ] Real-time sync between tabs (today a change made elsewhere is only seen through `409`).
 - [ ] Make `test_command` fail when every database test is skipped.
 - [ ] Verify `docker compose up` end to end, including building the API image.
-- [ ] Slice 2: archive single cards, filter the board by card type, search card titles.
-- [ ] Slice 3: link cards to mapa-mental ideas in both directions, keyed by the Google `sub`.
-- [ ] Slice 4: deployment beyond localhost, and a mobile or PWA view on the same API.
+- [ ] Slice 2: swimlanes.
+- [ ] Slice 3: subtasks.
+- [ ] Slice 4: checklists in tasks and subtasks.
+- [ ] Slice 5: column types.
+- [ ] Slice 6: estimation.
+- [ ] Slice 7: velocity report.
+- [ ] Later: archive single cards, filter the board by card type, search card titles.
+- [ ] Later: deployment beyond localhost, and a mobile or PWA view on the same API.
 - [ ] Open: account deletion and a `pg_dump` backup script.
 
 ## License

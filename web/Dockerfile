@@ -1,4 +1,4 @@
-# Dev image, same layout as mapa-mental's web Dockerfile: node_modules lives in its own volume
+# Dev image: node_modules lives in its own volume
 # (`web-node-modules`) and pnpm keeps a fixed store, so reinstalling on start is fast.
 FROM node:22-alpine
 
