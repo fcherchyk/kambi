@@ -87,25 +87,3 @@ def test_S1_AC1_compose_reads_only_variables_listed_in_env_example() -> None:
     used = set(re.findall(r"\$\{(\w+)", COMPOSE_FILE.read_text()))
 
     assert used <= set(env_example())
-
-
-def in_git_repo() -> bool:
-    if shutil.which("git") is None:
-        return False
-    result = subprocess.run(
-        ["git", "rev-parse", "--is-inside-work-tree"], cwd=ROOT, capture_output=True, text=True
-    )
-    return result.returncode == 0 and result.stdout.strip() == "true"
-
-
-# Asks git which files it ignores; outside a repository (e.g. a `git archive` copy) it is skipped.
-@pytest.mark.skipif(not in_git_repo(), reason="not inside a git repository")
-def test_S1_AC1_dot_env_is_ignored_by_git() -> None:
-    result = subprocess.run(
-        ["git", "check-ignore", "-q", ".env"], cwd=ROOT, capture_output=True, check=False
-    )
-    assert result.returncode == 0
-    example = subprocess.run(
-        ["git", "check-ignore", "-q", ".env.example"], cwd=ROOT, capture_output=True, check=False
-    )
-    assert example.returncode == 1

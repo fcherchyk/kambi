@@ -24,3 +24,6 @@ htmlcov/
 
 # Offline sandbox (run-sandbox.sh): embedded PostgreSQL data and session secret
 .sandbox/
+
+# IDE settings
+.idea/

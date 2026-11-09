@@ -270,8 +270,7 @@ once the dependencies are cached, without network access, for example from a `gi
   used even if it is running), and a persistent one in `.sandbox/` for the app.
   `api/scripts/sandbox_db.py` starts and stops it.
 - Without the Docker CLI, the compose tests check `docker-compose.yml` as text instead of
-  running `docker compose config`, and the `.env` git check is skipped outside a git
-  repository.
+  running `docker compose config`.
 - Google sign-in needs network, so `run-sandbox.sh` sets `DEV_LOGIN=true` and does not read
   `.env`. The login page then also shows "Sign in as dev user", which signs in a fixed local
   user (`dev@localhost`) through `GET /api/auth/dev-login`. That route only exists when
