@@ -28,9 +28,9 @@ Each criterion is named `S1_ACn`. Every test of the API (pytest) and the web app
 
 ### S1_AC1: Local stack and configuration
 
-Given the repo and a `.env` copied from `.env.example`, when the stack is configured, then `api` is published only on `127.0.0.1:8001`, `web` only on `127.0.0.1:5174` (Vite with `strictPort`, proxying `/api` to `http://localhost:8001` or `API_URL`) and `db` is not published. `.env.example` lists every variable the app reads, with no real values, and `.env` is ignored by git. Settings are read from the environment, missing required ones fail with their names, and database URLs use psycopg 3.
+Given the repo and a `.env` copied from `.env.example`, when the stack is configured, then `api` is published only on `127.0.0.1:8001`, `web` only on `127.0.0.1:5174` (Vite with `strictPort`, proxying `/api` to `http://localhost:8001` or `API_URL`, and able to compile the SPA with every plugin) and `db` is not published. `.env.example` lists every variable the app reads, with no real values, and `.env` is ignored by git. Settings are read from the environment, missing required ones fail with their names, and database URLs use psycopg 3.
 
-**Tests (13):**
+**Tests (14):**
 
 - `api/tests/test_compose.py::test_S1_AC1_compose_publishes_only_on_localhost`
 - `api/tests/test_compose.py::test_S1_AC1_env_example_lists_every_variable_without_real_values`
@@ -44,6 +44,7 @@ Given the repo and a `.env` copied from `.env.example`, when the stack is config
 - `web/src/test/config.test.ts` › "S1_AC1: Vite serves on 5174 with strictPort and proxies /api to localhost:8001 by default"
 - `web/src/test/config.test.ts` › "S1_AC1: API_URL=http://api:8001 sends the proxy to the api service"
 - `web/src/test/config.test.ts` › "S1_AC1: the web service builds ./web, publishes 127.0.0.1:5174 and keeps node_modules in a volume"
+- `web/src/test/config.test.ts` › "S1_AC1: the dev server compiles a component with every plugin (their dependencies are installed)"
 - `web/src/test/config.test.ts` › "S1_AC1: the Dockerfile uses a fixed pnpm store and CI=true"
 
 ### S1_AC2: Google sign-in

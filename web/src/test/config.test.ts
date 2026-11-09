@@ -1,5 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { createServer } from "vite";
 import { describe, expect, it } from "vitest";
 import { serverOptions } from "../../vite.config";
 
@@ -39,6 +41,25 @@ describe("dev server and compose", () => {
     expect(web).toContain("web-node-modules:/app/node_modules");
     expect(web).toContain("API_URL: http://api:8001");
   });
+
+  it("S1_AC1: the dev server compiles a component with every plugin (their dependencies are installed)", async () => {
+    // Vitest skips the React plugin's Babel step (Fast Refresh): only the dev server runs it.
+    const server = await createServer({
+      root: fileURLToPath(new URL("../..", import.meta.url)),
+      configFile: fileURLToPath(
+        new URL("../../vite.config.ts", import.meta.url),
+      ),
+      logLevel: "silent",
+      server: { middlewareMode: true, ws: false },
+      optimizeDeps: { noDiscovery: true, include: [] },
+    });
+    try {
+      const result = await server.transformRequest("/src/App.tsx");
+      expect(result?.code).toContain("$RefreshReg$");
+    } finally {
+      await server.close();
+    }
+  }, 30_000);
 
   it("S1_AC1: the Dockerfile uses a fixed pnpm store and CI=true", () => {
     const dockerfile = read("../../Dockerfile");

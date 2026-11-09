@@ -106,9 +106,9 @@ All ports are published on `127.0.0.1` only. The database port is not published 
 | Script | What it does | Needs |
 |---|---|---|
 | `./run-docker.sh` | Starts `db`, `api` and `web` with docker compose and Google sign-in. Extra arguments go to `docker compose up` (e.g. `-d`). | Docker, `.env` |
-| `./run-sandbox.sh` | Starts the app with no Docker and no network: embedded PostgreSQL with its data in `.sandbox/`, the API on `127.0.0.1:8001`, the web app on `http://localhost:5174`, and "Sign in as dev user" instead of Google. Ctrl-C stops everything; the data stays. | uv and pnpm caches (see "Offline sandbox") |
+| `./run-sandbox.sh` | Starts the app with no Docker and, once the dependencies are cached, no network: embedded PostgreSQL with its data in `.sandbox/`, the API on `127.0.0.1:8001`, the web app on `http://localhost:5174`, and "Sign in as dev user" instead of Google. Ctrl-C stops everything; the data stays. | uv, pnpm, Python 3.12 (see "Offline sandbox") |
 | `./test-docker.sh` | Both test suites with coverage; the API tests get PostgreSQL from Docker (testcontainers). Extra arguments go to pytest. | Docker |
-| `./test-sandbox.sh` | Both test suites with coverage, offline, against a temporary embedded PostgreSQL. Extra arguments go to pytest. | uv and pnpm caches |
+| `./test-sandbox.sh` | Both test suites with coverage, without Docker, against a temporary embedded PostgreSQL. Extra arguments go to pytest. | uv, pnpm, Python 3.12 |
 
 The two `run-` scripts use the same ports, so run only one at a time.
 
@@ -210,7 +210,7 @@ pnpm --dir web exec vitest run --coverage
 ```
 
 These are the `setup_command` and `test_command` of `.agents/project.yaml`, and what
-`./test-docker.sh` runs (`./test-sandbox.sh` runs the same suites offline).
+`./test-docker.sh` runs (`./test-sandbox.sh` runs the same suites without Docker).
 
 ### API tests
 
@@ -239,13 +239,32 @@ SPA's client cannot silently drift.
 
 ### Offline sandbox (no Docker, no network)
 
-`./test-sandbox.sh` runs both suites, and `./run-sandbox.sh` runs the app, without Docker and
-without network access, for example from a `git archive` copy:
+`./test-sandbox.sh` runs both suites, and `./run-sandbox.sh` runs the app, without Docker and,
+once the dependencies are cached, without network access, for example from a `git archive` copy:
 
-- Python 3.12 must already be installed, and the dependencies downloaded beforehand: copy a
-  populated uv cache (or run `uv sync --directory api` once while online), and run
-  `pnpm --dir web fetch` while online. The scripts then install with `UV_OFFLINE=1` and
-  `pnpm install --offline`.
+- Python 3.12 must already be installed. Both scripts install the dependencies through
+  `sandbox-deps.sh`, trying in order:
+  1. the lockfiles' versions offline, from the uv and pnpm caches (to fill them while online,
+     run `uv sync --directory api` and `pnpm --dir web fetch`, or just run a script once);
+  2. the lockfiles' versions with network;
+  3. if the package index refuses versions the lockfiles pin (a mirror that lags behind, or a
+     "minimum release age" policy, which gives `403` or `404` on recent releases): a new
+     resolution within the ranges of `pyproject.toml` and `package.json` that skips releases
+     newer than 14, 30, 60 or 90 days, offline first. It installs with `uv pip` and with
+     pnpm's lockfile turned off, so `uv.lock` and `pnpm-lock.yaml` are never rewritten, and it
+     prints a warning, since the versions then differ from the lockfiles. The cutoff that
+     worked is remembered in `.sandbox/deps/`, and later runs go straight to it while the
+     lockfile stays the same (delete `.sandbox/deps/` to try the lockfile again).
+
+  A failed pnpm install can leave `web/node_modules` half-relinked (the dev server then fails
+  with "Cannot find package '@babel/core'"), so every web install is checked for dangling
+  links, and `web/node_modules` is removed and relinked from pnpm's store after a failed one.
+
+  If pnpm cannot switch to the version pinned in `web/package.json` (`packageManager`), for
+  example because the registry serves it unsigned, the installed pnpm is used, with a warning.
+  Settings: `SANDBOX_OFFLINE=1` never uses the network, `SANDBOX_DEPS=locked` never uses
+  step 3 (it fails instead), and `SANDBOX_DEPS_MIN_AGE_DAYS="30 60"` changes the cutoffs.
+  The installation log goes to a temporary file, whose last lines are shown on failure.
 - PostgreSQL comes from the embedded `pgserver` (wheels for Linux x86_64 and macOS, Python
   3.9 to 3.12): a temporary one for the tests (through `TEST_DATABASE_URL`, so Docker is not
   used even if it is running), and a persistent one in `.sandbox/` for the app.
@@ -320,8 +339,9 @@ docker-compose.yml  db, api and web services (127.0.0.1 only)
 .env.example        every setting, with placeholder values
 run-docker.sh       the app with docker compose
 run-sandbox.sh      the app offline, without Docker (embedded PostgreSQL, dev login)
+sandbox-deps.sh     dependency setup of the two sandbox scripts (lockfiles, or a fallback)
 test-docker.sh      both test suites, PostgreSQL from Docker
-test-sandbox.sh     both test suites offline, embedded PostgreSQL
+test-sandbox.sh     both test suites without Docker, embedded PostgreSQL
 ```
 
 ## Roadmap
