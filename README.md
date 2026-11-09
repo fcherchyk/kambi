@@ -269,6 +269,9 @@ once the dependencies are cached, without network access, for example from a `gi
   3.9 to 3.12): a temporary one for the tests (through `TEST_DATABASE_URL`, so Docker is not
   used even if it is running), and a persistent one in `.sandbox/` for the app.
   `api/scripts/sandbox_db.py` starts and stops it.
+  Run as root, pgserver starts PostgreSQL as a `pgserver` system user it creates; if that user
+  comes back with a new uid after a restart (a VM whose `/etc/passwd` is reset), the helper hands
+  the existing data back to it, and if PostgreSQL does not start it prints the end of its log.
 - Without the Docker CLI, the compose tests check `docker-compose.yml` as text instead of
   running `docker compose config`.
 - Google sign-in needs network, so `run-sandbox.sh` sets `DEV_LOGIN=true` and does not read

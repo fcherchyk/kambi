@@ -95,9 +95,9 @@ Requests without a valid session (missing, invalid or expired cookie) get `401` 
 
 ### S1_AC4: Offline sandbox and dev login
 
-With `DEV_LOGIN=true` (set only by `run-sandbox.sh`), `GET /api/auth/dev-login` signs in a fixed local user (`dev@localhost`), reusing it on later logins; the route answers only loopback clients (`403` otherwise), is not in the OpenAPI schema, and does not exist (`404`) when the flag is off. The login screen offers "Sign in as dev user" only when `VITE_DEV_LOGIN` is true. The sandbox database helper only accepts plain database names.
+With `DEV_LOGIN=true` (set only by `run-sandbox.sh`), `GET /api/auth/dev-login` signs in a fixed local user (`dev@localhost`), reusing it on later logins; the route answers only loopback clients (`403` otherwise), is not in the OpenAPI schema, and does not exist (`404`) when the flag is off. The login screen offers "Sign in as dev user" only when `VITE_DEV_LOGIN` is true. The sandbox database helper only accepts plain database names; when run as root it hands an existing data directory to PostgreSQL's system user (which may come back with a new uid after a restart), and if PostgreSQL does not start it prints the end of its log.
 
-**Tests (7):**
+**Tests (10):**
 
 - `api/tests/test_auth.py::test_S1_AC4_dev_login_does_not_exist_by_default`
 - `api/tests/test_auth.py::test_S1_AC4_dev_login_signs_in_the_dev_user_and_reuses_it`
@@ -105,6 +105,9 @@ With `DEV_LOGIN=true` (set only by `run-sandbox.sh`), `GET /api/auth/dev-login` 
 - `api/tests/test_auth.py::test_S1_AC4_dev_login_is_not_in_the_openapi_schema`
 - `api/tests/test_sandbox_db.py::test_S1_AC4_create_database_sql_for_a_plain_name`
 - `api/tests/test_sandbox_db.py::test_S1_AC4_create_database_sql_rejects_unsafe_names`
+- `api/tests/test_sandbox_db.py::test_S1_AC4_chown_tree_hands_every_path_to_the_new_owner`
+- `api/tests/test_sandbox_db.py::test_S1_AC4_chown_tree_skips_paths_that_already_have_the_owner`
+- `api/tests/test_sandbox_db.py::test_S1_AC4_log_tail_shows_the_end_of_the_postgres_log`
 - `web/src/test/session.test.tsx` › "S1_AC4: offers the dev login only when VITE_DEV_LOGIN is true"
 
 ### S1_AC5: Boards

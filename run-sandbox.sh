@@ -37,6 +37,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# As root, pgserver runs PostgreSQL as the "pgserver" user. After a VM restart that user may
+# come back with a new uid, so hand the existing data back to it.
+if [ "$(id -u)" = 0 ]; then
+  id pgserver >/dev/null 2>&1 || useradd -s /bin/bash pgserver
+  [ ! -d .sandbox/pg ] || chown -R pgserver:pgserver .sandbox/pg
+fi
+
 DATABASE_URL="$(api_run python -m scripts.sandbox_db start "$sandbox/pg" kambi)"
 SESSION_SECRET="$(cat "$sandbox/session_secret")"
 export DATABASE_URL SESSION_SECRET
